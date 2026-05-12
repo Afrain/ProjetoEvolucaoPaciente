@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login | FisioGestao</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
+  </head>
+  <body class="login-body">
+    <main class="login-shell">
+      <section class="login-panel">
+        <div>
+          <p class="eyebrow">Sistema local</p>
+          <h1>FisioGestao</h1>
+          <p class="muted">Entre para acompanhar pacientes, sessoes e evolucao clinica.</p>
+        </div>
+
+        {% if error %}
+          <div class="alert alert-error">{{ error }}</div>
+        {% endif %}
+
+        <form class="stack" action="/login" method="post">
+          <label>
+            Usuario
+            <input name="username" type="text" value="{{ username or '' }}" autocomplete="username" required autofocus>
+          </label>
+          <label>
+            Senha
+            <input name="password" type="password" autocomplete="current-password" required>
+          </label>
+          <button class="button button-primary" type="submit">Entrar</button>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>

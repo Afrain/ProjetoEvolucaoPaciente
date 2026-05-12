@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | FisioGestao{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Ola, {{ current_user.full_name }}</p>
+      <h1>Dashboard de pacientes</h1>
+    </div>
+    <a class="button button-primary" href="/patients/new">Adicionar paciente</a>
+  </section>
+
+  <section class="stats-grid" aria-label="Resumo do sistema">
+    <article class="stat">
+      <span>Total de pacientes</span>
+      <strong>{{ total_patients }}</strong>
+    </article>
+    <article class="stat">
+      <span>Pacientes ativos</span>
+      <strong>{{ active_patients }}</strong>
+    </article>
+    <article class="stat">
+      <span>Atendimentos registrados</span>
+      <strong>{{ total_attendances }}</strong>
+    </article>
+  </section>
+
+  <section class="section-head">
+    <h2>Pacientes</h2>
+    <input class="search-input" data-patient-search type="search" placeholder="Buscar por nome, telefone ou status">
+  </section>
+
+  {% if patients %}
+    <div class="patient-list" data-patient-list>
+      {% for item in patients %}
+        <article class="patient-row" data-patient-card data-search-text="{{ item.patient.name }} {{ item.patient.phone }} {{ item.patient.email or '' }} {{ item.patient.status }}">
+          <div class="patient-main">
+            <a class="patient-name" href="/patients/{{ item.patient.id }}">{{ item.patient.name }}</a>
+            <span class="muted">{{ item.patient.phone }}{% if item.patient.email %} | {{ item.patient.email }}{% endif %}</span>
+          </div>
+          <div class="patient-meta">
+            <span class="badge">{{ item.patient.status }}</span>
+            <span>{{ item.total_attendances }} sessoes</span>
+            <span>Ultima visita: {{ item.last_visit.strftime("%d/%m/%Y") if item.last_visit else "sem registro" }}</span>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <section class="empty-state">
+      <h2>Nenhum paciente cadastrado</h2>
+      <p>Cadastre o primeiro paciente para iniciar o acompanhamento clinico.</p>
+      <a class="button button-primary" href="/patients/new">Adicionar paciente</a>
+    </section>
+  {% endif %}
+{% endblock %}

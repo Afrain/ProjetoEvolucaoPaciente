@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}{{ patient.name }} | FisioGestao{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Historico do paciente</p>
+      <h1>{{ patient.name }}</h1>
+      <p class="muted">{{ patient.phone }}{% if patient.email %} | {{ patient.email }}{% endif %}</p>
+    </div>
+    <div class="actions">
+      <a class="button button-primary" href="/patients/{{ patient.id }}/attendances/new">Novo atendimento</a>
+      <a class="button button-secondary" href="/patients/{{ patient.id }}/edit">Editar</a>
+    </div>
+  </section>
+
+  <section class="detail-grid">
+    <div class="info-panel">
+      <h2>Resumo</h2>
+      <dl class="details-list">
+        <div>
+          <dt>Nascimento</dt>
+          <dd>{{ patient.birth_date.strftime("%d/%m/%Y") }}</dd>
+        </div>
+        <div>
+          <dt>Status</dt>
+          <dd><span class="badge">{{ patient.status }}</span></dd>
+        </div>
+        <div>
+          <dt>Total de sessoes</dt>
+          <dd>{{ total_attendances }}</dd>
+        </div>
+      </dl>
+      <h2>Saude</h2>
+      <p class="long-text">{{ patient.health_info }}</p>
+      <form action="/patients/{{ patient.id }}/delete" method="post" data-confirm="Excluir este paciente tambem remove todos os atendimentos. Continuar?">
+        <button class="button button-danger" type="submit">Excluir paciente</button>
+      </form>
+    </div>
+
+    <section class="history-panel">
+      <div class="section-head">
+        <h2>Evolucao</h2>
+        <span class="muted">{{ total_attendances }} registros</span>
+      </div>
+
+      {% if patient.attendances %}
+        <div class="timeline">
+          {% for attendance in patient.attendances %}
+            <article class="timeline-item">
+              <div class="timeline-date">{{ attendance.attendance_date.strftime("%d/%m/%Y") }}</div>
+              <div class="timeline-content">
+                <div class="timeline-title">
+                  <h3>{{ attendance.treatment_type }}</h3>
+                  <span>{{ attendance.duration_minutes }} min</span>
+                </div>
+                <p>{{ attendance.evolution_notes }}</p>
+                <div class="inline-actions">
+                  <a href="/attendances/{{ attendance.id }}/edit">Editar</a>
+                  <form action="/attendances/{{ attendance.id }}/delete" method="post" data-confirm="Excluir este atendimento?">
+                    <button type="submit">Excluir</button>
+                  </form>
+                </div>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state compact">
+          <h2>Nenhum atendimento registrado</h2>
+          <p>Adicione o primeiro atendimento para iniciar a linha de evolucao.</p>
+        </div>
+      {% endif %}
+    </section>
+  </section>
+{% endblock %}
