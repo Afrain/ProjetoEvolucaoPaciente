@@ -5,32 +5,36 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, object_session
 
 from app.auth import get_current_user
 from app.database import get_db
-from app.models import Attendance, Patient, User
-from app.schemas import AttendanceCreate, AttendanceUpdate
+from app.models import Attendance, Patient, Surgeon, User
+from app.schemas import AttendanceCreate, AttendanceUpdate, validation_messages
 
 router = APIRouter(tags=["attendances"])
 templates = Jinja2Templates(directory="templates")
 
-
-def validation_messages(exc: ValidationError) -> list[str]:
-    return [str(error["msg"]) for error in exc.errors()]
+ATTENDANCE_FIELD_LABELS = {
+    "attendance_date": "Data do atendimento",
+    "duration_minutes": "Duração em minutos",
+    "treatment_type": "Tipo de tratamento",
+    "evolution_notes": "Observações de evolução",
+    "surgeon_id": "Cirurgião",
+}
 
 
 def get_patient_or_404(db: Session, patient_id: int) -> Patient:
     patient = db.get(Patient, patient_id)
     if not patient:
-        raise HTTPException(status_code=404, detail="Paciente nao encontrado.")
+        raise HTTPException(status_code=404, detail="Paciente não encontrado.")
     return patient
 
 
 def get_attendance_or_404(db: Session, attendance_id: int) -> Attendance:
     attendance = db.get(Attendance, attendance_id)
     if not attendance:
-        raise HTTPException(status_code=404, detail="Atendimento nao encontrado.")
+        raise HTTPException(status_code=404, detail="Atendimento não encontrado.")
     return attendance
 
 
@@ -49,7 +53,15 @@ def attendance_context(
         "attendance": attendance,
         "form_data": form_data or {},
         "errors": errors or [],
+        "surgeons": db_surgeons_for_context(patient),
     }
+
+
+def db_surgeons_for_context(patient: Patient) -> list[Surgeon]:
+    session = object_session(patient)
+    if session is None:
+        return []
+    return session.query(Surgeon).order_by(Surgeon.name.asc()).all()
 
 
 @router.get("/patients/{patient_id}/attendances/new")
@@ -77,6 +89,7 @@ def create_attendance(
     duration_minutes: Annotated[int, Form()],
     treatment_type: Annotated[str, Form()],
     evolution_notes: Annotated[str, Form()],
+    surgeon_id: Annotated[str, Form()] = "",
 ):
     patient = get_patient_or_404(db, patient_id)
     form_data = {
@@ -84,6 +97,7 @@ def create_attendance(
         "duration_minutes": duration_minutes,
         "treatment_type": treatment_type,
         "evolution_notes": evolution_notes,
+        "surgeon_id": surgeon_id,
     }
     try:
         data = AttendanceCreate(**form_data)
@@ -91,7 +105,26 @@ def create_attendance(
         return templates.TemplateResponse(
             request,
             "attendances/form.html",
-            attendance_context(request, current_user, patient, form_data=form_data, errors=validation_messages(exc)),
+            attendance_context(
+                request,
+                current_user,
+                patient,
+                form_data=form_data,
+                errors=validation_messages(exc, ATTENDANCE_FIELD_LABELS),
+            ),
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
+    if data.surgeon_id and not db.get(Surgeon, data.surgeon_id):
+        return templates.TemplateResponse(
+            request,
+            "attendances/form.html",
+            attendance_context(
+                request,
+                current_user,
+                patient,
+                form_data=form_data,
+                errors=["Selecione um cirurgião válido."],
+            ),
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         )
 
@@ -126,6 +159,7 @@ def update_attendance(
     duration_minutes: Annotated[int, Form()],
     treatment_type: Annotated[str, Form()],
     evolution_notes: Annotated[str, Form()],
+    surgeon_id: Annotated[str, Form()] = "",
 ):
     attendance = get_attendance_or_404(db, attendance_id)
     form_data = {
@@ -133,6 +167,7 @@ def update_attendance(
         "duration_minutes": duration_minutes,
         "treatment_type": treatment_type,
         "evolution_notes": evolution_notes,
+        "surgeon_id": surgeon_id,
     }
     try:
         data = AttendanceUpdate(**form_data)
@@ -146,7 +181,21 @@ def update_attendance(
                 attendance.patient,
                 attendance=attendance,
                 form_data=form_data,
-                errors=validation_messages(exc),
+                errors=validation_messages(exc, ATTENDANCE_FIELD_LABELS),
+            ),
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
+    if data.surgeon_id and not db.get(Surgeon, data.surgeon_id):
+        return templates.TemplateResponse(
+            request,
+            "attendances/form.html",
+            attendance_context(
+                request,
+                current_user,
+                attendance.patient,
+                attendance=attendance,
+                form_data=form_data,
+                errors=["Selecione um cirurgião válido."],
             ),
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         )

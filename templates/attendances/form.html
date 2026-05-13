@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% set is_edit = attendance is not none %}
-{% block title %}{{ "Editar atendimento" if is_edit else "Novo atendimento" }} | FisioGestao{% endblock %}
+{% block title %}{{ "Editar atendimento" if is_edit else "Novo atendimento" }} | FisioGestão{% endblock %}
 
 {% block content %}
   <section class="page-header">
@@ -26,15 +26,33 @@
       <input name="attendance_date" type="date" value="{{ form_data.attendance_date if form_data else attendance.attendance_date if is_edit else '' }}" required>
     </label>
     <label>
-      Duracao em minutos
+      Duração em minutos
       <input name="duration_minutes" type="number" min="1" max="600" value="{{ form_data.duration_minutes if form_data else attendance.duration_minutes if is_edit else '50' }}" required>
+    </label>
+    <label>
+      Cirurgião
+      {% set selected_surgeon = form_data.surgeon_id if form_data else attendance.surgeon_id if is_edit else '' %}
+      <div class="field-with-action" data-quick-create data-endpoint="/surgeons">
+        <select name="surgeon_id" data-quick-select>
+          <option value="">Não informado</option>
+          {% for surgeon in surgeons %}
+            <option value="{{ surgeon.id }}" {% if surgeon.id|string == selected_surgeon|string %}selected{% endif %}>{{ surgeon.name }}</option>
+          {% endfor %}
+        </select>
+        <button class="icon-button" type="button" data-quick-toggle aria-label="Cadastrar cirurgião" title="Cadastrar cirurgião">+</button>
+        <div class="quick-create-panel span-full" data-quick-panel hidden>
+          <input name="name" type="text" placeholder="Nome do cirurgião" data-quick-name>
+          <button class="button button-secondary" type="button" data-quick-save>Adicionar</button>
+        </div>
+        <p class="field-feedback" data-quick-feedback></p>
+      </div>
     </label>
     <label class="span-full">
       Tipo de tratamento
       <input name="treatment_type" type="text" value="{{ form_data.treatment_type if form_data else attendance.treatment_type if is_edit else '' }}" required>
     </label>
     <label class="span-full">
-      Observacoes de evolucao
+      Observações de evolução
       <textarea name="evolution_notes" rows="8" required>{{ form_data.evolution_notes if form_data else attendance.evolution_notes if is_edit else '' }}</textarea>
     </label>
     <div class="form-actions span-full">

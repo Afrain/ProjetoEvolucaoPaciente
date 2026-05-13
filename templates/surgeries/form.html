@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% set is_edit = surgery is not none %}
+{% block title %}{{ "Editar cirurgia" if is_edit else "Nova cirurgia" }} | FisioGestão{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">{{ patient.name }}</p>
+      <h1>{{ "Editar cirurgia" if is_edit else "Nova cirurgia" }}</h1>
+    </div>
+    <a class="button button-secondary" href="/patients/{{ patient.id }}">Voltar ao paciente</a>
+  </section>
+
+  {% if errors %}
+    <div class="alert alert-error">
+      {% for error in errors %}
+        <p>{{ error }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <form class="form-grid" action="{{ '/surgeries/' ~ surgery.id ~ '/edit' if is_edit else '/patients/' ~ patient.id ~ '/surgeries' }}" method="post">
+    <label>
+      Data da cirurgia
+      <input name="surgery_date" type="date" value="{{ form_data.surgery_date if form_data else surgery.surgery_date if is_edit else '' }}" required>
+    </label>
+
+    <label>
+      Tipo de cirurgia
+      {% set selected_type = form_data.surgery_type_id if form_data else surgery.surgery_type_id if is_edit else '' %}
+      <div class="field-with-action" data-quick-create data-endpoint="/surgery-types">
+        <select name="surgery_type_id" data-quick-select required>
+          <option value="">Selecione</option>
+          {% for surgery_type in surgery_types %}
+            <option value="{{ surgery_type.id }}" {% if surgery_type.id|string == selected_type|string %}selected{% endif %}>{{ surgery_type.name }}</option>
+          {% endfor %}
+        </select>
+        <button class="icon-button" type="button" data-quick-toggle aria-label="Cadastrar tipo de cirurgia" title="Cadastrar tipo de cirurgia">+</button>
+        <div class="quick-create-panel span-full" data-quick-panel hidden>
+          <input name="name" type="text" placeholder="Nome do tipo de cirurgia" data-quick-name>
+          <button class="button button-secondary" type="button" data-quick-save>Adicionar</button>
+        </div>
+        <p class="field-feedback" data-quick-feedback></p>
+      </div>
+    </label>
+
+    <label>
+      Cirurgião
+      {% set selected_surgeon = form_data.surgeon_id if form_data else surgery.surgeon_id if is_edit else '' %}
+      <div class="field-with-action" data-quick-create data-endpoint="/surgeons">
+        <select name="surgeon_id" data-quick-select required>
+          <option value="">Selecione</option>
+          {% for surgeon in surgeons %}
+            <option value="{{ surgeon.id }}" {% if surgeon.id|string == selected_surgeon|string %}selected{% endif %}>{{ surgeon.name }}</option>
+          {% endfor %}
+        </select>
+        <button class="icon-button" type="button" data-quick-toggle aria-label="Cadastrar cirurgião" title="Cadastrar cirurgião">+</button>
+        <div class="quick-create-panel span-full" data-quick-panel hidden>
+          <input name="name" type="text" placeholder="Nome do cirurgião" data-quick-name>
+          <button class="button button-secondary" type="button" data-quick-save>Adicionar</button>
+        </div>
+        <p class="field-feedback" data-quick-feedback></p>
+      </div>
+    </label>
+
+    <div class="form-actions span-full">
+      <button class="button button-primary" type="submit">{{ "Salvar cirurgia" if is_edit else "Registrar cirurgia" }}</button>
+    </div>
+  </form>
+{% endblock %}

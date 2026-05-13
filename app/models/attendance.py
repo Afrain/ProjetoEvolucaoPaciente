@@ -11,6 +11,7 @@ class Attendance(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     patient_id: Mapped[int] = mapped_column(ForeignKey("patients.id", ondelete="CASCADE"), nullable=False)
+    surgeon_id: Mapped[int | None] = mapped_column(ForeignKey("surgeons.id", ondelete="SET NULL"), nullable=True)
     attendance_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     duration_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
     treatment_type: Mapped[str] = mapped_column(String(120), nullable=False)
@@ -18,3 +19,4 @@ class Attendance(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     patient: Mapped["Patient"] = relationship(back_populates="attendances")
+    surgeon: Mapped["Surgeon | None"] = relationship(back_populates="attendances")

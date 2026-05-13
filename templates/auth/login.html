@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Login | FisioGestao</title>
+    <title>Login | FisioGestão</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
   </head>
   <body class="login-body">
@@ -11,8 +11,8 @@
       <section class="login-panel">
         <div>
           <p class="eyebrow">Sistema local</p>
-          <h1>FisioGestao</h1>
-          <p class="muted">Entre para acompanhar pacientes, sessoes e evolucao clinica.</p>
+          <h1>FisioGestão</h1>
+          <p class="muted">Entre para acompanhar pacientes, sessões e evolução clínica.</p>
         </div>
 
         {% if error %}
@@ -21,7 +21,7 @@
 
         <form class="stack" action="/login" method="post">
           <label>
-            Usuario
+            Usuário
             <input name="username" type="text" value="{{ username or '' }}" autocomplete="username" required autofocus>
           </label>
           <label>

@@ -11,7 +11,7 @@ ADMIN_FULL_NAME_ENV = "INITIAL_ADMIN_FULL_NAME"
 
 
 def create_initial_admin_from_env(db: Session) -> None:
-    # O primeiro usuario vem do ambiente para evitar credenciais publicadas no codigo.
+    # O primeiro usuário vem do ambiente para evitar credenciais publicadas no código.
     if db.query(User).count() > 0:
         return
 
@@ -21,8 +21,8 @@ def create_initial_admin_from_env(db: Session) -> None:
 
     if not username or not password:
         raise RuntimeError(
-            "Nenhum usuario existe no banco. Defina INITIAL_ADMIN_USERNAME e "
-            "INITIAL_ADMIN_PASSWORD antes da primeira execucao."
+            "Nenhum usuário existe no banco. Defina INITIAL_ADMIN_USERNAME e "
+            "INITIAL_ADMIN_PASSWORD antes da primeira execução."
         )
 
     if len(password) < 8:

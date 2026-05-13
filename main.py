@@ -8,7 +8,8 @@ from dotenv import load_dotenv
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.database import Base, SessionLocal, engine
-from app.routes import attendances, auth, dashboard, patients
+from app.routes import attendances, auth, dashboard, patients, surgeries
+from app.schema_updates import ensure_runtime_schema
 from app.seed import create_initial_admin_from_env
 
 load_dotenv()
@@ -17,7 +18,7 @@ load_dotenv()
 def get_session_secret() -> str:
     secret_key = os.getenv("SESSION_SECRET_KEY")
     if not secret_key:
-        raise RuntimeError("Defina SESSION_SECRET_KEY no ambiente antes de iniciar a aplicacao.")
+        raise RuntimeError("Defina SESSION_SECRET_KEY no ambiente antes de iniciar a aplicação.")
     if len(secret_key) < 32:
         raise RuntimeError("SESSION_SECRET_KEY deve ter pelo menos 32 caracteres.")
     return secret_key
@@ -26,6 +27,7 @@ def get_session_secret() -> str:
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     Base.metadata.create_all(bind=engine)
+    ensure_runtime_schema(engine)
     db = SessionLocal()
     try:
         create_initial_admin_from_env(db)
@@ -35,7 +37,7 @@ async def lifespan(_: FastAPI):
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Gestao de Pacientes - Fisioterapia", lifespan=lifespan)
+    app = FastAPI(title="Gestão de Pacientes - Fisioterapia", lifespan=lifespan)
 
     app.add_middleware(
         SessionMiddleware,
@@ -46,14 +48,20 @@ def create_app() -> FastAPI:
     )
 
     app.mount("/static", StaticFiles(directory="static"), name="static")
+
+    @app.get("/")
+    def home():
+        return {"message": "API Online"}
+
     app.include_router(auth.router)
     app.include_router(dashboard.router)
     app.include_router(patients.router)
     app.include_router(attendances.router)
+    app.include_router(surgeries.router)
 
     @app.exception_handler(404)
     def not_found(_: Request, __: Exception):
-        return RedirectResponse("/")
+        return RedirectResponse("/dashboard")
 
     return app
 

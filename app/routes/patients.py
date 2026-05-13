@@ -1,4 +1,3 @@
-from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
@@ -10,23 +9,30 @@ from sqlalchemy.orm import Session, selectinload
 from app.auth import get_current_user
 from app.database import get_db
 from app.models import Patient, User
-from app.schemas import PatientCreate, PatientUpdate
+from app.schemas import LOCATION_OPTIONS, STATUS_OPTIONS, PatientCreate, PatientUpdate, validation_messages
 
 router = APIRouter(prefix="/patients", tags=["patients"])
 templates = Jinja2Templates(directory="templates")
 
-STATUS_OPTIONS = ["Em tratamento", "Alta", "Pausado"]
+PATIENT_FIELD_LABELS = {
+    "name": "Nome",
+    "birth_date": "Data de nascimento",
+    "phone": "Telefone",
+    "health_info": "Informações de saúde",
+    "status": "Status",
+    "location": "Local de atendimento",
+}
 
 
 def get_patient_or_404(db: Session, patient_id: int) -> Patient:
     patient = (
         db.query(Patient)
-        .options(selectinload(Patient.attendances))
+        .options(selectinload(Patient.attendances), selectinload(Patient.surgeries))
         .filter(Patient.id == patient_id)
         .first()
     )
     if not patient:
-        raise HTTPException(status_code=404, detail="Paciente nao encontrado.")
+        raise HTTPException(status_code=404, detail="Paciente não encontrado.")
     return patient
 
 
@@ -44,11 +50,8 @@ def patient_context(
         "form_data": form_data or {},
         "errors": errors or [],
         "status_options": STATUS_OPTIONS,
+        "location_options": LOCATION_OPTIONS,
     }
-
-
-def validation_messages(exc: ValidationError) -> list[str]:
-    return [str(error["msg"]) for error in exc.errors()]
 
 
 @router.get("/new")
@@ -69,34 +72,34 @@ def create_patient(
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
     name: Annotated[str, Form()],
-    birth_date: Annotated[date, Form()],
-    phone: Annotated[str, Form()],
-    email: Annotated[str, Form()] = "",
+    birth_date: Annotated[str, Form()] = "",
+    phone: Annotated[str, Form()] = "",
     health_info: Annotated[str, Form()] = "",
     status_value: Annotated[str, Form(alias="status")] = "Em tratamento",
+    location: Annotated[str, Form()] = "Consultório",
 ):
     form_data = {
         "name": name,
         "birth_date": birth_date,
         "phone": phone,
-        "email": email,
         "health_info": health_info,
         "status": status_value,
+        "location": location,
     }
     try:
         data = PatientCreate(
             name=name,
             birth_date=birth_date,
             phone=phone,
-            email=email or None,
             health_info=health_info,
             status=status_value,
+            location=location,
         )
     except ValidationError as exc:
         return templates.TemplateResponse(
             request,
             "patients/form.html",
-            patient_context(request, current_user, form_data, validation_messages(exc)),
+            patient_context(request, current_user, form_data, validation_messages(exc, PATIENT_FIELD_LABELS)),
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         )
 
@@ -122,6 +125,7 @@ def patient_detail(
             "current_user": current_user,
             "patient": patient,
             "total_attendances": len(patient.attendances),
+            "total_surgeries": len(patient.surgeries),
         },
     )
 
@@ -148,35 +152,41 @@ def update_patient(
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
     name: Annotated[str, Form()],
-    birth_date: Annotated[date, Form()],
-    phone: Annotated[str, Form()],
-    email: Annotated[str, Form()] = "",
+    birth_date: Annotated[str, Form()] = "",
+    phone: Annotated[str, Form()] = "",
     health_info: Annotated[str, Form()] = "",
     status_value: Annotated[str, Form(alias="status")] = "Em tratamento",
+    location: Annotated[str, Form()] = "Consultório",
 ):
     patient = get_patient_or_404(db, patient_id)
     form_data = {
         "name": name,
         "birth_date": birth_date,
         "phone": phone,
-        "email": email,
         "health_info": health_info,
         "status": status_value,
+        "location": location,
     }
     try:
         data = PatientUpdate(
             name=name,
             birth_date=birth_date,
             phone=phone,
-            email=email or None,
             health_info=health_info,
             status=status_value,
+            location=location,
         )
     except ValidationError as exc:
         return templates.TemplateResponse(
             request,
             "patients/form.html",
-            patient_context(request, current_user, form_data, validation_messages(exc), patient),
+            patient_context(
+                request,
+                current_user,
+                form_data,
+                validation_messages(exc, PATIENT_FIELD_LABELS),
+                patient,
+            ),
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         )
 
@@ -195,4 +205,4 @@ def delete_patient(
     patient = get_patient_or_404(db, patient_id)
     db.delete(patient)
     db.commit()
-    return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse("/dashboard", status_code=status.HTTP_303_SEE_OTHER)

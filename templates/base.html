@@ -3,16 +3,17 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Gestao de Pacientes{% endblock %}</title>
+    <title>{% block title %}Gestão de Pacientes{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
     <script src="{{ url_for('static', path='/js/app.js') }}" defer></script>
   </head>
   <body>
     <header class="topbar">
-      <a class="brand" href="/">FisioGestao</a>
-      <nav class="topnav" aria-label="Navegacao principal">
-        <a href="/">Dashboard</a>
+      <a class="brand" href="/dashboard">FisioGestão</a>
+      <nav class="topnav" aria-label="Navegação principal">
+        <a href="/dashboard">Painel</a>
         <a href="/patients/new">Novo paciente</a>
+        <a href="/surgical-options">Cadastros</a>
         {% if current_user %}
           <form action="/logout" method="post">
             <button class="button button-ghost" type="submit">Sair</button>

@@ -163,7 +163,7 @@ h3 {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
   margin-bottom: 2rem;
 }
@@ -288,6 +288,47 @@ textarea:focus {
   border-color: var(--primary);
 }
 
+.field-with-action {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 0.5rem;
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--primary-dark);
+  cursor: pointer;
+  font: inherit;
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.quick-create-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+}
+
+.field-feedback {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.section-spaced {
+  margin-top: 2rem;
+}
+
 .detail-grid {
   display: grid;
   grid-template-columns: minmax(260px, 360px) 1fr;
@@ -383,6 +424,61 @@ dd {
   color: var(--warning-text);
 }
 
+.alert-success {
+  background: #e8f4ef;
+  color: #1f6f4a;
+}
+
+.management-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.management-panel {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.management-panel .section-head {
+  margin-bottom: 0;
+}
+
+.inline-create-form,
+.option-row,
+.option-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.inline-create-form {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.option-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.option-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.option-form {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
 .empty-state {
   padding: 2rem;
   text-align: center;
@@ -426,6 +522,10 @@ dd {
   .page-header,
   .section-head,
   .patient-row,
+  .management-grid,
+  .inline-create-form,
+  .option-row,
+  .option-form,
   .detail-grid,
   .timeline-item {
     grid-template-columns: 1fr;
@@ -448,6 +548,10 @@ dd {
 
   .stats-grid,
   .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-create-panel {
     grid-template-columns: 1fr;
   }
 

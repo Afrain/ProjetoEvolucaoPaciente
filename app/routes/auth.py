@@ -17,7 +17,7 @@ templates = Jinja2Templates(directory="templates")
 @router.get("/login")
 def login_page(request: Request):
     if request.session.get("user_id"):
-        return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse("/dashboard", status_code=status.HTTP_303_SEE_OTHER)
     return templates.TemplateResponse(request, "auth/login.html")
 
 
@@ -35,7 +35,7 @@ def login(
             request,
             "auth/login.html",
             {
-                "error": "Informe usuario e senha validos.",
+                "error": "Informe usuário e senha válidos.",
                 "username": username,
             },
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -47,14 +47,14 @@ def login(
             request,
             "auth/login.html",
             {
-                "error": "Usuario ou senha incorretos.",
+                "error": "Usuário ou senha incorretos.",
                 "username": credentials.username,
             },
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
 
     login_user(request, user)
-    return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse("/dashboard", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/logout")

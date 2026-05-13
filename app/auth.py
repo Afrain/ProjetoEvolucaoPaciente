@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, Request, status
 from passlib.context import CryptContext
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -20,14 +21,15 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def authenticate_user(db: Session, username: str, password: str) -> User | None:
-    user = db.query(User).filter(User.username == username).first()
+    normalized_username = username.strip().lower()
+    user = db.query(User).filter(func.lower(User.username) == normalized_username).first()
     if not user or not verify_password(password, user.hashed_password):
         return None
     return user
 
 
 def login_user(request: Request, user: User) -> None:
-    # Starlette SessionMiddleware assina o cookie; o banco guarda apenas o usuario.
+    # Starlette SessionMiddleware assina o cookie; o banco guarda apenas o usuário.
     request.session[SESSION_USER_KEY] = user.id
 
 

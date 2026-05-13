@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Cadastros cirúrgicos | FisioGestão{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Cadastros cirúrgicos</p>
+      <h1>Tipos de cirurgia e cirurgiões</h1>
+    </div>
+  </section>
+
+  {% if notice %}
+    <div class="alert alert-success">{{ notice }}</div>
+  {% endif %}
+
+  {% if error %}
+    <div class="alert alert-error">{{ error }}</div>
+  {% endif %}
+
+  <section class="management-grid">
+    <div class="management-panel">
+      <div class="section-head">
+        <h2>Tipos de cirurgia</h2>
+      </div>
+
+      <form class="inline-create-form" action="/surgery-types" method="post">
+        <label>
+          Novo tipo de cirurgia
+          <input name="name" type="text" minlength="2" maxlength="120" required>
+        </label>
+        <button class="button button-primary" type="submit">Adicionar</button>
+      </form>
+
+      {% if surgery_types %}
+        <div class="option-list">
+          {% for surgery_type in surgery_types %}
+            <div class="option-row">
+              <form class="option-form" action="/surgery-types/{{ surgery_type.id }}/edit" method="post">
+                <input name="name" type="text" value="{{ surgery_type.name }}" minlength="2" maxlength="120" required>
+                <button class="button button-secondary" type="submit">Salvar</button>
+              </form>
+              <form action="/surgery-types/{{ surgery_type.id }}/delete" method="post" data-confirm="Excluir este tipo de cirurgia?">
+                <button class="button button-danger" type="submit">Excluir</button>
+              </form>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state compact">
+          <h2>Nenhum tipo cadastrado</h2>
+          <p>Cadastre o primeiro tipo de cirurgia para usar nos registros dos pacientes.</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="management-panel">
+      <div class="section-head">
+        <h2>Cirurgiões</h2>
+      </div>
+
+      <form class="inline-create-form" action="/surgeons" method="post">
+        <label>
+          Novo cirurgião
+          <input name="name" type="text" minlength="2" maxlength="140" required>
+        </label>
+        <button class="button button-primary" type="submit">Adicionar</button>
+      </form>
+
+      {% if surgeons %}
+        <div class="option-list">
+          {% for surgeon in surgeons %}
+            <div class="option-row">
+              <form class="option-form" action="/surgeons/{{ surgeon.id }}/edit" method="post">
+                <input name="name" type="text" value="{{ surgeon.name }}" minlength="2" maxlength="140" required>
+                <button class="button button-secondary" type="submit">Salvar</button>
+              </form>
+              <form action="/surgeons/{{ surgeon.id }}/delete" method="post" data-confirm="Excluir este cirurgião?">
+                <button class="button button-danger" type="submit">Excluir</button>
+              </form>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state compact">
+          <h2>Nenhum cirurgião cadastrado</h2>
+          <p>Cadastre o primeiro cirurgião para usar nos registros de cirurgia e atendimento.</p>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}

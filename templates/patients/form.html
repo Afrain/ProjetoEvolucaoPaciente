@@ -1,18 +1,18 @@
 {% extends "base.html" %}
 
 {% set is_edit = patient is not none %}
-{% block title %}{{ "Editar paciente" if is_edit else "Novo paciente" }} | FisioGestao{% endblock %}
+{% block title %}{{ "Editar paciente" if is_edit else "Novo paciente" }} | FisioGestão{% endblock %}
 
 {% block content %}
   <section class="page-header">
     <div>
-      <p class="eyebrow">Cadastro clinico</p>
+      <p class="eyebrow">Cadastro clínico</p>
       <h1>{{ "Editar paciente" if is_edit else "Novo paciente" }}</h1>
     </div>
     {% if is_edit %}
-      <a class="button button-secondary" href="/patients/{{ patient.id }}">Voltar ao historico</a>
+      <a class="button button-secondary" href="/patients/{{ patient.id }}">Voltar ao histórico</a>
     {% else %}
-      <a class="button button-secondary" href="/">Voltar</a>
+      <a class="button button-secondary" href="/dashboard">Voltar</a>
     {% endif %}
   </section>
 
@@ -31,28 +31,33 @@
     </label>
     <label>
       Data de nascimento
-      <input name="birth_date" type="date" value="{{ form_data.birth_date if form_data else patient.birth_date if is_edit else '' }}" required>
+      <input name="birth_date" type="date" value="{{ form_data.birth_date if form_data else patient.birth_date if is_edit and patient.birth_date else '' }}">
     </label>
     <label>
       Telefone
-      <input name="phone" type="tel" value="{{ form_data.phone if form_data else patient.phone if is_edit else '' }}" required>
-    </label>
-    <label>
-      Email
-      <input name="email" type="email" value="{{ form_data.email if form_data else patient.email if is_edit and patient.email else '' }}">
+      <input name="phone" type="tel" value="{{ form_data.phone if form_data else patient.phone if is_edit and patient.phone else '' }}">
     </label>
     <label>
       Status
       {% set selected_status = form_data.status if form_data else patient.status if is_edit else "Em tratamento" %}
-      <select name="status" required>
+      <select name="status">
         {% for option in status_options %}
           <option value="{{ option }}" {% if option == selected_status %}selected{% endif %}>{{ option }}</option>
         {% endfor %}
       </select>
     </label>
+    <label>
+      Local de atendimento
+      {% set selected_location = form_data.location if form_data else patient.location if is_edit else "Consultório" %}
+      <select name="location">
+        {% for option in location_options %}
+          <option value="{{ option }}" {% if option == selected_location %}selected{% endif %}>{{ option }}</option>
+        {% endfor %}
+      </select>
+    </label>
     <label class="span-full">
-      Informacoes basicas de saude
-      <textarea name="health_info" rows="7" required>{{ form_data.health_info if form_data else patient.health_info if is_edit else '' }}</textarea>
+      Informações básicas de saúde
+      <textarea name="health_info" rows="7">{{ form_data.health_info if form_data else patient.health_info if is_edit and patient.health_info else '' }}</textarea>
     </label>
     <div class="form-actions span-full">
       <button class="button button-primary" type="submit">{{ "Salvar alteracoes" if is_edit else "Cadastrar paciente" }}</button>

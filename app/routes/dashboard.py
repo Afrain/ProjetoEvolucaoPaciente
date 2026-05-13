@@ -12,7 +12,7 @@ router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
 
-@router.get("/")
+@router.get("/dashboard")
 def dashboard(
     request: Request,
     db: Annotated[Session, Depends(get_db)],
@@ -20,18 +20,20 @@ def dashboard(
 ):
     patients = (
         db.query(Patient)
-        .options(selectinload(Patient.attendances))
+        .options(selectinload(Patient.attendances), selectinload(Patient.surgeries))
         .order_by(Patient.name.asc())
         .all()
     )
 
     cards = []
     total_attendances = 0
+    total_surgeries = 0
     active_patients = 0
     for patient in patients:
         attendances = patient.attendances
         total = len(attendances)
         total_attendances += total
+        total_surgeries += len(patient.surgeries)
         if patient.status == "Em tratamento":
             active_patients += 1
         cards.append(
@@ -50,6 +52,7 @@ def dashboard(
             "patients": cards,
             "total_patients": len(patients),
             "total_attendances": total_attendances,
+            "total_surgeries": total_surgeries,
             "active_patients": active_patients,
         },
     )
