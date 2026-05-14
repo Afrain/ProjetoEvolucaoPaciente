@@ -103,7 +103,9 @@ def _ensure_surgery_schema(engine: Engine, dialect: str) -> None:
         if "planned_attendances" not in columns:
             connection.execute(text("ALTER TABLE surgeries ADD COLUMN planned_attendances INTEGER NOT NULL DEFAULT 10"))
         if "status" not in columns:
-            connection.execute(text("ALTER TABLE surgeries ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'Em progresso'"))
+            connection.execute(text("ALTER TABLE surgeries ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'Em tratamento'"))
+        else:
+            connection.execute(text("UPDATE surgeries SET status = 'Em tratamento' WHERE status = 'Em progresso'"))
 
 
 def _ensure_attendance_schema(engine: Engine, dialect: str) -> None:

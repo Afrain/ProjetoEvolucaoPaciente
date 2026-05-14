@@ -3,7 +3,15 @@ from datetime import date
 from pydantic import BaseModel, Field, ValidationError, ValidationInfo, field_validator
 
 ATTENDANCE_LOCATION_OPTIONS = ["Consultorio", "Domiciliar"]
-SURGERY_STATUS_OPTIONS = ["Em progresso", "Alta"]
+SURGERY_IN_TREATMENT_STATUS = "Em tratamento"
+SURGERY_LEGACY_IN_PROGRESS_STATUS = "Em progresso"
+SURGERY_STATUS_OPTIONS = [SURGERY_IN_TREATMENT_STATUS, "Alta"]
+
+
+def normalize_surgery_status(value: str) -> str:
+    if value == SURGERY_LEGACY_IN_PROGRESS_STATUS:
+        return SURGERY_IN_TREATMENT_STATUS
+    return value
 
 
 def validation_messages(exc: ValidationError, field_labels: dict[str, str]) -> list[str]:
@@ -118,14 +126,14 @@ class SurgeryBase(BaseModel):
     surgery_type_id: int = Field(ge=1)
     surgeon_id: int = Field(ge=1)
     planned_attendances: int = Field(ge=1, le=500)
-    status: str = Field(default="Em progresso", max_length=20)
+    status: str = Field(default=SURGERY_IN_TREATMENT_STATUS, max_length=20)
 
     @field_validator("status", mode="before")
     @classmethod
     def strip_status(cls, value: str | None) -> str:
         if not isinstance(value, str):
-            return "Em progresso"
-        return value.strip() or "Em progresso"
+            return SURGERY_IN_TREATMENT_STATUS
+        return normalize_surgery_status(value.strip() or SURGERY_IN_TREATMENT_STATUS)
 
     @field_validator("status")
     @classmethod
@@ -151,7 +159,7 @@ class SurgeryStatusUpdate(BaseModel):
     def strip_status(cls, value: str | None) -> str:
         if not isinstance(value, str):
             return ""
-        return value.strip()
+        return normalize_surgery_status(value.strip())
 
     @field_validator("status")
     @classmethod

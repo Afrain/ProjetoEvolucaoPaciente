@@ -71,7 +71,10 @@
 
     <label>
       Status da cirurgia
-      {% set selected_status = form_data.status if form_data else surgery.status if is_edit else "Em progresso" %}
+      {% set selected_status = form_data.status if form_data else surgery.status if is_edit else "Em tratamento" %}
+      {% if selected_status == "Em progresso" %}
+        {% set selected_status = "Em tratamento" %}
+      {% endif %}
       <select name="status" required>
         {% for option in surgery_status_options %}
           <option value="{{ option }}" {% if option == selected_status %}selected{% endif %}>{{ option }}</option>

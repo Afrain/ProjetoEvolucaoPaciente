@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.auth import get_current_user
 from app.database import get_db
 from app.models import Patient, Surgery, TreatmentEpisode, User
-from app.schemas import PatientCreate, PatientUpdate, validation_messages
+from app.schemas import PatientCreate, PatientUpdate, normalize_surgery_status, validation_messages
 
 router = APIRouter(prefix="/patients", tags=["patients"])
 templates = Jinja2Templates(directory="templates")
@@ -69,8 +69,9 @@ def build_evolution_report_sections(patient: Patient, episode: TreatmentEpisode)
         f"Telefone: {patient.phone or '-'}",
     ]
 
+    surgery_number = surgery.id if surgery else "-"
     cycle_lines = [
-        f"Ciclo: {episode.id}",
+        f"Numero cirurgia: {surgery_number}",
         f"Inicio: {format_date(episode.started_on)}",
         f"Encerramento: {format_date(episode.closed_on)}",
     ]
@@ -79,7 +80,7 @@ def build_evolution_report_sections(patient: Patient, episode: TreatmentEpisode)
         f"Cirurgia: {surgery.surgery_type.name}" if surgery else "Cirurgia: nao vinculada",
         f"Data da cirurgia: {format_date(surgery.surgery_date)}" if surgery else "Data da cirurgia: -",
         f"Cirurgiao: {surgery.surgeon.name}" if surgery else "Cirurgiao: -",
-        f"Status: {surgery.status}" if surgery else "Status: -",
+        f"Status: {normalize_surgery_status(surgery.status)}" if surgery else "Status: -",
         f"Sessoes: {total_done}/{total_planned}",
     ]
 
@@ -218,7 +219,8 @@ def download_evolution_report_pdf(
     episode = get_episode_for_patient_or_404(patient, episode_id)
     sections = build_evolution_report_sections(patient, episode)
     safe_name = "".join(char if char.isalnum() else "_" for char in patient.name).strip("_") or "paciente"
-    filename = f"evolucao_{safe_name}_ciclo_{episode.id}.pdf"
+    surgery_number = episode.surgery.id if episode.surgery else "sem_cirurgia"
+    filename = f"evolucao_{safe_name}_cirurgia_{surgery_number}.pdf"
 
     # Redesign completo: visual limpo, executivo e facil de ler
     page_bg = (0.985, 0.99, 1.0)
@@ -284,7 +286,7 @@ def download_evolution_report_pdf(
     pdf.setFont("Helvetica-Bold", 14)
     pdf.drawString(margin_left, header_y, "RELATORIO DE EVOLUCAO CLINICA")
     pdf.setFont("Helvetica", 8.4)
-    pdf.drawString(margin_left, header_y - 4.2 * mm, f"Paciente: {patient.name}  |  Ciclo: {episode.id}")
+    pdf.drawString(margin_left, header_y - 4.2 * mm, f"Paciente: {patient.name}  |  Numero cirurgia: {surgery_number}")
     pdf.drawRightString(width - margin_left, header_y - 4.2 * mm, f"Gerado em: {format_date(date.today())}")
 
     y = height - header_h - (5 * mm)

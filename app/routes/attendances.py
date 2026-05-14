@@ -13,6 +13,7 @@ from app.database import get_db
 from app.models import Attendance, Patient, TreatmentEpisode, User
 from app.schemas import (
     ATTENDANCE_LOCATION_OPTIONS,
+    SURGERY_IN_TREATMENT_STATUS,
     AttendanceCreate,
     EpisodeStatusUpdate,
     AttendanceUpdate,
@@ -131,7 +132,7 @@ def sync_surgery_status_from_episode(db: Session, episode: TreatmentEpisode) -> 
         if episode.closed_on is None:
             episode.closed_on = date.today()
     elif surgery.status == "Alta":
-        surgery.status = "Em progresso"
+        surgery.status = SURGERY_IN_TREATMENT_STATUS
         episode.closed_on = None
 
 

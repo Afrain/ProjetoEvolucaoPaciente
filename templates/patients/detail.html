@@ -12,7 +12,7 @@
     <div class="actions">
       <a class="button button-primary" href="/patients/{{ patient.id }}/attendances/new">Novo atendimento</a>
       <a class="button button-secondary" href="/patients/{{ patient.id }}/surgeries/new">Nova cirurgia/ciclo</a>
-      <a class="button button-secondary" href="/patients/{{ patient.id }}/edit">Editar</a>
+      <a class="button button-secondary" href="/patients/{{ patient.id }}/edit">Editar dados do paciente</a>
     </div>
   </section>
 
@@ -66,7 +66,7 @@
                   {% if episode.surgery %}
                     <h3>{{ episode.surgery.surgery_type.name }}</h3>
                     <p class="muted">Cirurgiao: {{ episode.surgery.surgeon.name }}</p>
-                    <p class="muted">{{ episode.attendances|length }} sessao de {{ episode.surgery.planned_attendances }} | {{ episode.surgery.status }}</p>
+                    <p class="muted">{{ episode.attendances|length }} sessao de {{ episode.surgery.planned_attendances }} | {{ "Em tratamento" if episode.surgery.status == "Em progresso" else episode.surgery.status }}</p>
                   {% else %}
                     <h3>Ciclo sem cirurgia vinculada</h3>
                   {% endif %}
@@ -79,6 +79,9 @@
               <div class="episode-content">
                 <div class="form-actions">
                   <a class="button button-secondary" href="/patients/{{ patient.id }}/treatment-episodes/{{ episode.id }}/evolution-report.pdf">Baixar evolucao</a>
+                  {% if episode.surgery %}
+                    <a class="button button-secondary" href="/surgeries/{{ episode.surgery.id }}/edit">Editar cirurgia</a>
+                  {% endif %}
                   {% set reached_limit = episode.surgery and (episode.attendances|length >= episode.surgery.planned_attendances) %}
                   {% set is_closed = episode.surgery and episode.surgery.status == "Alta" %}
                   {% if episode.surgery and episode.surgery.status != "Alta" %}

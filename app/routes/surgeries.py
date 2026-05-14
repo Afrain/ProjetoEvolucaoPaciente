@@ -12,7 +12,14 @@ from sqlalchemy.orm import Session, object_session
 from app.auth import get_current_user
 from app.database import get_db
 from app.models import Attendance, Patient, Surgeon, Surgery, SurgeryType, TreatmentEpisode, User
-from app.schemas import SURGERY_STATUS_OPTIONS, SurgeryCreate, SurgeryStatusUpdate, SurgeryUpdate, validation_messages
+from app.schemas import (
+    SURGERY_IN_TREATMENT_STATUS,
+    SURGERY_STATUS_OPTIONS,
+    SurgeryCreate,
+    SurgeryStatusUpdate,
+    SurgeryUpdate,
+    validation_messages,
+)
 
 router = APIRouter(tags=["surgeries"])
 templates = Jinja2Templates(directory="templates")
@@ -174,7 +181,7 @@ def create_surgery(
     surgery_type_id: Annotated[int, Form()],
     surgeon_id: Annotated[int, Form()],
     planned_attendances: Annotated[int, Form()],
-    status_value: Annotated[str, Form(alias="status")] = "Em progresso",
+    status_value: Annotated[str, Form(alias="status")] = SURGERY_IN_TREATMENT_STATUS,
 ):
     patient = get_patient_or_404(db, patient_id)
     form_data = {
@@ -235,7 +242,7 @@ def update_surgery(
     surgery_type_id: Annotated[int, Form()],
     surgeon_id: Annotated[int, Form()],
     planned_attendances: Annotated[int, Form()],
-    status_value: Annotated[str, Form(alias="status")] = "Em progresso",
+    status_value: Annotated[str, Form(alias="status")] = SURGERY_IN_TREATMENT_STATUS,
 ):
     surgery = get_surgery_or_404(db, surgery_id)
     form_data = {

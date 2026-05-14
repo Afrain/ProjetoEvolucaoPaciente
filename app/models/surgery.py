@@ -36,7 +36,7 @@ class Surgery(Base):
     surgeon_id: Mapped[int] = mapped_column(ForeignKey("surgeons.id"), nullable=False)
     surgery_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     planned_attendances: Mapped[int] = mapped_column(Integer, nullable=False, default=10)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="Em progresso")
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="Em tratamento")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     patient: Mapped["Patient"] = relationship(back_populates="surgeries")
