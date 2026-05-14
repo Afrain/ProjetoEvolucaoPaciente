@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% set is_edit = surgery is not none %}
-{% block title %}{{ "Editar cirurgia" if is_edit else "Nova cirurgia" }} | FisioGestão{% endblock %}
+{% block title %}{{ "Editar cirurgia" if is_edit else "Nova cirurgia" }} | FisioGestao{% endblock %}
 
 {% block content %}
   <section class="page-header">
@@ -46,7 +46,7 @@
     </label>
 
     <label>
-      Cirurgião
+      Cirurgiao
       {% set selected_surgeon = form_data.surgeon_id if form_data else surgery.surgeon_id if is_edit else '' %}
       <div class="field-with-action" data-quick-create data-endpoint="/surgeons">
         <select name="surgeon_id" data-quick-select required>
@@ -55,13 +55,28 @@
             <option value="{{ surgeon.id }}" {% if surgeon.id|string == selected_surgeon|string %}selected{% endif %}>{{ surgeon.name }}</option>
           {% endfor %}
         </select>
-        <button class="icon-button" type="button" data-quick-toggle aria-label="Cadastrar cirurgião" title="Cadastrar cirurgião">+</button>
+        <button class="icon-button" type="button" data-quick-toggle aria-label="Cadastrar cirurgiao" title="Cadastrar cirurgiao">+</button>
         <div class="quick-create-panel span-full" data-quick-panel hidden>
-          <input name="name" type="text" placeholder="Nome do cirurgião" data-quick-name>
+          <input name="name" type="text" placeholder="Nome do cirurgiao" data-quick-name>
           <button class="button button-secondary" type="button" data-quick-save>Adicionar</button>
         </div>
         <p class="field-feedback" data-quick-feedback></p>
       </div>
+    </label>
+
+    <label>
+      Total previsto de atendimentos
+      <input name="planned_attendances" type="number" min="1" max="500" value="{{ form_data.planned_attendances if form_data else surgery.planned_attendances if is_edit else '10' }}" required>
+    </label>
+
+    <label>
+      Status da cirurgia
+      {% set selected_status = form_data.status if form_data else surgery.status if is_edit else "Em progresso" %}
+      <select name="status" required>
+        {% for option in surgery_status_options %}
+          <option value="{{ option }}" {% if option == selected_status %}selected{% endif %}>{{ option }}</option>
+        {% endfor %}
+      </select>
     </label>
 
     <div class="form-actions span-full">

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.auth import get_current_user
 from app.database import get_db
-from app.models import Patient, User
+from app.models import Patient, Surgery, TreatmentEpisode, User
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -20,7 +20,14 @@ def dashboard(
 ):
     patients = (
         db.query(Patient)
-        .options(selectinload(Patient.attendances), selectinload(Patient.surgeries))
+        .options(
+            selectinload(Patient.attendances),
+            selectinload(Patient.surgeries),
+            selectinload(Patient.treatment_episodes)
+            .selectinload(TreatmentEpisode.surgery)
+            .selectinload(Surgery.surgery_type),
+            selectinload(Patient.treatment_episodes).selectinload(TreatmentEpisode.attendances),
+        )
         .order_by(Patient.name.asc())
         .all()
     )
@@ -28,19 +35,24 @@ def dashboard(
     cards = []
     total_attendances = 0
     total_surgeries = 0
-    active_patients = 0
+    active_surgeries = 0
     for patient in patients:
         attendances = patient.attendances
         total = len(attendances)
         total_attendances += total
         total_surgeries += len(patient.surgeries)
-        if patient.status == "Em tratamento":
-            active_patients += 1
+        active_surgeries += sum(1 for surgery in patient.surgeries if surgery.status == "Em progresso")
+        latest_episode = patient.treatment_episodes[0] if patient.treatment_episodes else None
+        if latest_episode and latest_episode.surgery:
+            progress_text = f"{len(latest_episode.attendances)} sessao de {latest_episode.surgery.planned_attendances}"
+        else:
+            progress_text = "0 sessao de 0"
         cards.append(
             {
                 "patient": patient,
                 "total_attendances": total,
                 "last_visit": attendances[0].attendance_date if attendances else None,
+                "progress_text": progress_text,
             }
         )
 
@@ -53,6 +65,6 @@ def dashboard(
             "total_patients": len(patients),
             "total_attendances": total_attendances,
             "total_surgeries": total_surgeries,
-            "active_patients": active_patients,
+            "active_surgeries": active_surgeries,
         },
     )

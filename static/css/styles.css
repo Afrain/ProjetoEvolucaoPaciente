@@ -376,6 +376,54 @@ dd {
   gap: 1rem;
 }
 
+.episode-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.episode-block {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+
+.episode-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  list-style: none;
+  cursor: pointer;
+}
+
+.episode-head::-webkit-details-marker {
+  display: none;
+}
+
+.episode-content {
+  display: grid;
+  gap: 1rem;
+}
+
+.episode-toggle-label .when-open {
+  display: none;
+}
+
+details[open] .episode-toggle-label .when-collapsed {
+  display: none;
+}
+
+details[open] .episode-toggle-label .when-open {
+  display: inline;
+}
+
+.compact-timeline {
+  gap: 0.85rem;
+}
+
 .timeline-item {
   display: grid;
   grid-template-columns: 96px 1fr;
@@ -535,6 +583,10 @@ dd {
   .page-header,
   .section-head {
     align-items: stretch;
+  }
+
+  .episode-head {
+    display: grid;
   }
 
   .topbar {

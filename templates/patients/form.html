@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 
 {% set is_edit = patient is not none %}
-{% block title %}{{ "Editar paciente" if is_edit else "Novo paciente" }} | FisioGestão{% endblock %}
+{% block title %}{{ "Editar paciente" if is_edit else "Novo paciente" }} | FisioGestao{% endblock %}
 
 {% block content %}
   <section class="page-header">
     <div>
-      <p class="eyebrow">Cadastro clínico</p>
+      <p class="eyebrow">Cadastro clinico</p>
       <h1>{{ "Editar paciente" if is_edit else "Novo paciente" }}</h1>
     </div>
     {% if is_edit %}
-      <a class="button button-secondary" href="/patients/{{ patient.id }}">Voltar ao histórico</a>
+      <a class="button button-secondary" href="/patients/{{ patient.id }}">Voltar ao historico</a>
     {% else %}
       <a class="button button-secondary" href="/dashboard">Voltar</a>
     {% endif %}
@@ -37,26 +37,8 @@
       Telefone
       <input name="phone" type="tel" value="{{ form_data.phone if form_data else patient.phone if is_edit and patient.phone else '' }}">
     </label>
-    <label>
-      Status
-      {% set selected_status = form_data.status if form_data else patient.status if is_edit else "Em tratamento" %}
-      <select name="status">
-        {% for option in status_options %}
-          <option value="{{ option }}" {% if option == selected_status %}selected{% endif %}>{{ option }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label>
-      Local de atendimento
-      {% set selected_location = form_data.location if form_data else patient.location if is_edit else "Consultório" %}
-      <select name="location">
-        {% for option in location_options %}
-          <option value="{{ option }}" {% if option == selected_location %}selected{% endif %}>{{ option }}</option>
-        {% endfor %}
-      </select>
-    </label>
     <label class="span-full">
-      Informações básicas de saúde
+      Informacoes basicas de saude
       <textarea name="health_info" rows="7">{{ form_data.health_info if form_data else patient.health_info if is_edit and patient.health_info else '' }}</textarea>
     </label>
     <div class="form-actions span-full">

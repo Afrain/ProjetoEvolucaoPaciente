@@ -14,8 +14,6 @@ class Patient(Base):
     birth_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
     health_info: Mapped[str | None] = mapped_column(Text, nullable=True)
-    status: Mapped[str] = mapped_column(String(30), default="Em tratamento", nullable=False)
-    location: Mapped[str] = mapped_column(String(20), default="Consultório", nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
@@ -24,7 +22,6 @@ class Patient(Base):
         nullable=False,
     )
 
-    # Relacionamento 1:N: um paciente possui varios atendimentos.
     attendances: Mapped[list["Attendance"]] = relationship(
         back_populates="patient",
         cascade="all, delete-orphan",
@@ -34,4 +31,9 @@ class Patient(Base):
         back_populates="patient",
         cascade="all, delete-orphan",
         order_by="desc(Surgery.surgery_date)",
+    )
+    treatment_episodes: Mapped[list["TreatmentEpisode"]] = relationship(
+        back_populates="patient",
+        cascade="all, delete-orphan",
+        order_by="desc(TreatmentEpisode.started_on)",
     )

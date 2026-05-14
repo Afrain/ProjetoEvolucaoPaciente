@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Painel | FisioGestão{% endblock %}
+{% block title %}Painel | FisioGestao{% endblock %}
 
 {% block content %}
   <section class="page-header">
     <div>
-      <p class="eyebrow">Olá, {{ current_user.full_name }}</p>
+      <p class="eyebrow">Ola, {{ current_user.full_name }}</p>
       <h1>Painel de pacientes</h1>
     </div>
     <a class="button button-primary" href="/patients/new">Adicionar paciente</a>
@@ -17,8 +17,8 @@
       <strong>{{ total_patients }}</strong>
     </article>
     <article class="stat">
-      <span>Pacientes ativos</span>
-      <strong>{{ active_patients }}</strong>
+      <span>Cirurgias em progresso</span>
+      <strong>{{ active_surgeries }}</strong>
     </article>
     <article class="stat">
       <span>Atendimentos registrados</span>
@@ -32,21 +32,20 @@
 
   <section class="section-head">
     <h2>Pacientes</h2>
-    <input class="search-input" data-patient-search type="search" placeholder="Buscar por nome, telefone, local ou status">
+    <input class="search-input" data-patient-search type="search" placeholder="Buscar por nome e telefone">
   </section>
 
   {% if patients %}
     <div class="patient-list" data-patient-list>
       {% for item in patients %}
-        <article class="patient-row" data-patient-card data-search-text="{{ item.patient.name }} {{ item.patient.phone or '' }} {{ item.patient.location }} {{ item.patient.status }}">
+        <article class="patient-row" data-patient-card data-search-text="{{ item.patient.name }} {{ item.patient.phone or '' }}">
           <div class="patient-main">
             <a class="patient-name" href="/patients/{{ item.patient.id }}">{{ item.patient.name }}</a>
-            <span class="muted">{{ item.patient.phone or "Telefone não informado" }} | {{ item.patient.location }}</span>
+            <span class="muted">{{ item.patient.phone or "Telefone nao informado" }}</span>
           </div>
           <div class="patient-meta">
-            <span class="badge">{{ item.patient.status }}</span>
-            <span>{{ item.total_attendances }} sessões</span>
-            <span>Última visita: {{ item.last_visit.strftime("%d/%m/%Y") if item.last_visit else "sem registro" }}</span>
+            <span>{{ item.progress_text }}</span>
+            <span>Ultima visita: {{ item.last_visit.strftime("%d/%m/%Y") if item.last_visit else "sem registro" }}</span>
           </div>
         </article>
       {% endfor %}
@@ -54,7 +53,7 @@
   {% else %}
     <section class="empty-state">
       <h2>Nenhum paciente cadastrado</h2>
-      <p>Cadastre o primeiro paciente para iniciar o acompanhamento clínico.</p>
+      <p>Cadastre o primeiro paciente para iniciar o acompanhamento clinico.</p>
       <a class="button button-primary" href="/patients/new">Adicionar paciente</a>
     </section>
   {% endif %}

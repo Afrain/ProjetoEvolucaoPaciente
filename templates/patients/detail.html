@@ -1,20 +1,26 @@
 {% extends "base.html" %}
 
-{% block title %}{{ patient.name }} | FisioGestão{% endblock %}
+{% block title %}{{ patient.name }} | FisioGestao{% endblock %}
 
 {% block content %}
   <section class="page-header">
     <div>
-      <p class="eyebrow">Histórico do paciente</p>
+      <p class="eyebrow">Historico do paciente</p>
       <h1>{{ patient.name }}</h1>
-      <p class="muted">{{ patient.phone or "Telefone não informado" }} | {{ patient.location }}</p>
+      <p class="muted">{{ patient.phone or "Telefone nao informado" }}</p>
     </div>
     <div class="actions">
       <a class="button button-primary" href="/patients/{{ patient.id }}/attendances/new">Novo atendimento</a>
-      <a class="button button-secondary" href="/patients/{{ patient.id }}/surgeries/new">Nova cirurgia</a>
+      <a class="button button-secondary" href="/patients/{{ patient.id }}/surgeries/new">Nova cirurgia/ciclo</a>
       <a class="button button-secondary" href="/patients/{{ patient.id }}/edit">Editar</a>
     </div>
   </section>
+
+  {% if error %}
+    <div class="alert alert-error">
+      <p>{{ error }}</p>
+    </div>
+  {% endif %}
 
   <section class="detail-grid">
     <div class="info-panel">
@@ -22,98 +28,126 @@
       <dl class="details-list">
         <div>
           <dt>Nascimento</dt>
-          <dd>{{ patient.birth_date.strftime("%d/%m/%Y") if patient.birth_date else "Não informado" }}</dd>
+          <dd>{{ patient.birth_date.strftime("%d/%m/%Y") if patient.birth_date else "Nao informado" }}</dd>
         </div>
         <div>
-          <dt>Local</dt>
-          <dd>{{ patient.location }}</dd>
-        </div>
-        <div>
-          <dt>Status</dt>
-          <dd><span class="badge">{{ patient.status }}</span></dd>
-        </div>
-        <div>
-          <dt>Total de sessões</dt>
+          <dt>Total de atendimentos</dt>
           <dd>{{ total_attendances }}</dd>
         </div>
         <div>
           <dt>Cirurgias</dt>
           <dd>{{ total_surgeries }}</dd>
         </div>
+        <div>
+          <dt>Ciclos</dt>
+          <dd>{{ total_episodes }}</dd>
+        </div>
       </dl>
-      <h2>Saúde</h2>
-      <p class="long-text">{{ patient.health_info or "Nenhuma informação de saúde registrada." }}</p>
-      <form action="/patients/{{ patient.id }}/delete" method="post" data-confirm="Excluir este paciente também remove atendimentos e cirurgias. Continuar?">
+      <h2>Saude</h2>
+      <p class="long-text">{{ patient.health_info or "Nenhuma informacao de saude registrada." }}</p>
+      <form action="/patients/{{ patient.id }}/delete" method="post" data-confirm="Excluir este paciente tambem remove atendimentos, ciclos e cirurgias. Continuar?">
         <button class="button button-danger" type="submit">Excluir paciente</button>
       </form>
     </div>
 
     <section class="history-panel">
       <div class="section-head">
-        <h2>Evolução</h2>
-        <span class="muted">{{ total_attendances }} registros</span>
+        <h2>Ciclos de tratamento</h2>
+        <span class="muted">{{ total_episodes }} registros</span>
       </div>
 
-      {% if patient.attendances %}
+      {% if patient.treatment_episodes %}
+        <div class="episode-list">
+          {% for episode in patient.treatment_episodes %}
+            <details class="episode-block" data-episode-details>
+              <summary class="episode-head">
+                <div>
+                  <p class="eyebrow">Ciclo iniciado em {{ episode.started_on.strftime("%d/%m/%Y") }}</p>
+                  {% if episode.surgery %}
+                    <h3>{{ episode.surgery.surgery_type.name }}</h3>
+                    <p class="muted">Cirurgiao: {{ episode.surgery.surgeon.name }}</p>
+                    <p class="muted">{{ episode.attendances|length }} sessao de {{ episode.surgery.planned_attendances }} | {{ episode.surgery.status }}</p>
+                  {% else %}
+                    <h3>Ciclo sem cirurgia vinculada</h3>
+                  {% endif %}
+                </div>
+                <span class="muted episode-toggle-label">
+                  <span class="when-collapsed">Visualizar detalhes</span>
+                  <span class="when-open">Diminuir detalhes</span>
+                </span>
+              </summary>
+              <div class="episode-content">
+                <div class="form-actions">
+                  {% set reached_limit = episode.surgery and (episode.attendances|length >= episode.surgery.planned_attendances) %}
+                  {% set is_closed = episode.surgery and episode.surgery.status == "Alta" %}
+                  {% if episode.surgery and episode.surgery.status != "Alta" %}
+                    <form action="/treatment-episodes/{{ episode.id }}/mark-high" method="post" data-confirm="Marcar este ciclo como alta?">
+                      <button class="button button-primary" type="submit">Dar alta</button>
+                    </form>
+                  {% endif %}
+                  {% if episode.surgery and not reached_limit and not is_closed %}
+                    <a class="button button-secondary" href="/patients/{{ patient.id }}/attendances/new?treatment_episode_id={{ episode.id }}">Novo atendimento</a>
+                  {% endif %}
+                </div>
+                {% if episode.attendances %}
+                  <div class="timeline compact-timeline">
+                    {% for attendance in episode.attendances %}
+                      <article class="timeline-item">
+                        <div class="timeline-date">{{ attendance.attendance_date.strftime("%d/%m/%Y") }}</div>
+                        <div class="timeline-content">
+                          <div class="timeline-title">
+                            <h3>{{ attendance.treatment_type }}</h3>
+                            <span>{{ attendance.location }} | {{ attendance.status }}</span>
+                          </div>
+                          <p>{{ attendance.evolution_notes }}</p>
+                          {% if attendance.surgeon %}
+                            <p class="muted">Cirurgiao: {{ attendance.surgeon.name }}</p>
+                          {% endif %}
+                          <div class="inline-actions">
+                            <a href="/attendances/{{ attendance.id }}/edit">Editar</a>
+                            <form action="/attendances/{{ attendance.id }}/delete" method="post" data-confirm="Excluir este atendimento?">
+                              <button type="submit">Excluir</button>
+                            </form>
+                          </div>
+                        </div>
+                      </article>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <p class="muted">Nenhum atendimento registrado neste ciclo.</p>
+                {% endif %}
+              </div>
+            </details>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state compact">
+          <h2>Nenhum ciclo registrado</h2>
+          <p>Registre uma cirurgia para abrir o primeiro ciclo de tratamento.</p>
+        </div>
+      {% endif %}
+
+      {% if unlinked_attendances %}
+        <div class="section-head section-spaced">
+          <h2>Atendimentos sem ciclo</h2>
+          <span class="muted">{{ unlinked_attendances|length }} registros</span>
+        </div>
         <div class="timeline">
-          {% for attendance in patient.attendances %}
+          {% for attendance in unlinked_attendances %}
             <article class="timeline-item">
               <div class="timeline-date">{{ attendance.attendance_date.strftime("%d/%m/%Y") }}</div>
               <div class="timeline-content">
                 <div class="timeline-title">
                   <h3>{{ attendance.treatment_type }}</h3>
-                  <span>{{ attendance.duration_minutes }} min</span>
+                  <span>{{ attendance.location }} | {{ attendance.status }}</span>
                 </div>
                 <p>{{ attendance.evolution_notes }}</p>
-                {% if attendance.surgeon %}
-                  <p class="muted">Cirurgião: {{ attendance.surgeon.name }}</p>
-                {% endif %}
                 <div class="inline-actions">
-                  <a href="/attendances/{{ attendance.id }}/edit">Editar</a>
-                  <form action="/attendances/{{ attendance.id }}/delete" method="post" data-confirm="Excluir este atendimento?">
-                    <button type="submit">Excluir</button>
-                  </form>
+                  <a href="/attendances/{{ attendance.id }}/edit">Mover/editar</a>
                 </div>
               </div>
             </article>
           {% endfor %}
-        </div>
-      {% else %}
-        <div class="empty-state compact">
-          <h2>Nenhum atendimento registrado</h2>
-          <p>Adicione o primeiro atendimento para iniciar a linha de evolução.</p>
-        </div>
-      {% endif %}
-
-      <div class="section-head section-spaced">
-        <h2>Cirurgias</h2>
-        <span class="muted">{{ total_surgeries }} registros</span>
-      </div>
-
-      {% if patient.surgeries %}
-        <div class="timeline">
-          {% for surgery in patient.surgeries %}
-            <article class="timeline-item">
-              <div class="timeline-date">{{ surgery.surgery_date.strftime("%d/%m/%Y") }}</div>
-              <div class="timeline-content">
-                <div class="timeline-title">
-                  <h3>{{ surgery.surgery_type.name }}</h3>
-                  <span>{{ surgery.surgeon.name }}</span>
-                </div>
-                <div class="inline-actions">
-                  <a href="/surgeries/{{ surgery.id }}/edit">Editar</a>
-                  <form action="/surgeries/{{ surgery.id }}/delete" method="post" data-confirm="Excluir esta cirurgia?">
-                    <button type="submit">Excluir</button>
-                  </form>
-                </div>
-              </div>
-            </article>
-          {% endfor %}
-        </div>
-      {% else %}
-        <div class="empty-state compact">
-          <h2>Nenhuma cirurgia registrada</h2>
-          <p>Registre uma cirurgia quando ela fizer parte do histórico do paciente.</p>
         </div>
       {% endif %}
     </section>

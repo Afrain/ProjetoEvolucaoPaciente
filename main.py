@@ -51,7 +51,7 @@ def create_app() -> FastAPI:
 
     @app.get("/")
     def home():
-        return {"message": "API Online"}
+        return RedirectResponse("/dashboard", status_code=302)
 
     app.include_router(auth.router)
     app.include_router(dashboard.router)

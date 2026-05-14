@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% set is_edit = attendance is not none %}
-{% block title %}{{ "Editar atendimento" if is_edit else "Novo atendimento" }} | FisioGestão{% endblock %}
+{% block title %}{{ "Editar atendimento" if is_edit else "Novo atendimento" }} | FisioGestao{% endblock %}
 
 {% block content %}
   <section class="page-header">
@@ -20,43 +20,63 @@
     </div>
   {% endif %}
 
+  {% if not treatment_episodes %}
+    <div class="alert alert-error">
+      <p>Cadastre uma cirurgia para abrir um ciclo de tratamento antes de registrar atendimentos.</p>
+    </div>
+  {% endif %}
+
   <form class="form-grid" action="{{ '/attendances/' ~ attendance.id ~ '/edit' if is_edit else '/patients/' ~ patient.id ~ '/attendances' }}" method="post">
+    <label class="span-full">
+      Ciclo de tratamento
+      {% set selected_episode = form_data.treatment_episode_id if form_data else attendance.treatment_episode_id if is_edit else '' %}
+      <select name="treatment_episode_id" required>
+        <option value="">Selecione</option>
+        {% for episode in treatment_episodes %}
+          {% if episode.surgery %}
+            {% set episode_label = episode.surgery.surgery_date.strftime("%d/%m/%Y") ~ " - " ~ episode.surgery.surgery_type.name ~ " (" ~ episode.surgery.status ~ ")" %}
+          {% else %}
+            {% set episode_label = episode.started_on.strftime("%d/%m/%Y") ~ " - ciclo sem cirurgia vinculada" %}
+          {% endif %}
+          <option value="{{ episode.id }}" {% if episode.id|string == selected_episode|string %}selected{% endif %}>{{ episode_label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
     <label>
       Data do atendimento
       <input name="attendance_date" type="date" value="{{ form_data.attendance_date if form_data else attendance.attendance_date if is_edit else '' }}" required>
     </label>
     <label>
-      Duração em minutos
-      <input name="duration_minutes" type="number" min="1" max="600" value="{{ form_data.duration_minutes if form_data else attendance.duration_minutes if is_edit else '50' }}" required>
+      Local de atendimento
+      {% set selected_location = form_data.location if form_data else attendance.location if is_edit else "Consultorio" %}
+      <select name="location" required>
+        {% for option in attendance_location_options %}
+          <option value="{{ option }}" {% if option == selected_location %}selected{% endif %}>{{ option }}</option>
+        {% endfor %}
+      </select>
     </label>
-    <label>
-      Cirurgião
-      {% set selected_surgeon = form_data.surgeon_id if form_data else attendance.surgeon_id if is_edit else '' %}
-      <div class="field-with-action" data-quick-create data-endpoint="/surgeons">
-        <select name="surgeon_id" data-quick-select>
-          <option value="">Não informado</option>
-          {% for surgeon in surgeons %}
-            <option value="{{ surgeon.id }}" {% if surgeon.id|string == selected_surgeon|string %}selected{% endif %}>{{ surgeon.name }}</option>
+    {% if is_edit %}
+      <label>
+        Status do atendimento
+        {% set selected_status = form_data.status if form_data else attendance.status if is_edit else "Em andamento" %}
+        <select name="status" required>
+          {% for option in attendance_status_options %}
+            <option value="{{ option }}" {% if option == selected_status %}selected{% endif %}>{{ option }}</option>
           {% endfor %}
         </select>
-        <button class="icon-button" type="button" data-quick-toggle aria-label="Cadastrar cirurgião" title="Cadastrar cirurgião">+</button>
-        <div class="quick-create-panel span-full" data-quick-panel hidden>
-          <input name="name" type="text" placeholder="Nome do cirurgião" data-quick-name>
-          <button class="button button-secondary" type="button" data-quick-save>Adicionar</button>
-        </div>
-        <p class="field-feedback" data-quick-feedback></p>
-      </div>
-    </label>
+      </label>
+    {% endif %}
     <label class="span-full">
       Tipo de tratamento
       <input name="treatment_type" type="text" value="{{ form_data.treatment_type if form_data else attendance.treatment_type if is_edit else '' }}" required>
     </label>
     <label class="span-full">
-      Observações de evolução
+      Observacoes de evolucao
       <textarea name="evolution_notes" rows="8" required>{{ form_data.evolution_notes if form_data else attendance.evolution_notes if is_edit else '' }}</textarea>
     </label>
     <div class="form-actions span-full">
-      <button class="button button-primary" type="submit">{{ "Salvar atendimento" if is_edit else "Registrar atendimento" }}</button>
+      <button class="button button-primary" type="submit" {% if not treatment_episodes %}disabled{% endif %}>{{ "Salvar atendimento" if is_edit else "Registrar atendimento" }}</button>
     </div>
   </form>
 {% endblock %}

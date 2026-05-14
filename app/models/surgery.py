@@ -35,8 +35,14 @@ class Surgery(Base):
     surgery_type_id: Mapped[int] = mapped_column(ForeignKey("surgery_types.id"), nullable=False)
     surgeon_id: Mapped[int] = mapped_column(ForeignKey("surgeons.id"), nullable=False)
     surgery_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    planned_attendances: Mapped[int] = mapped_column(Integer, nullable=False, default=10)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="Em progresso")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     patient: Mapped["Patient"] = relationship(back_populates="surgeries")
     surgery_type: Mapped[SurgeryType] = relationship(back_populates="surgeries")
     surgeon: Mapped[Surgeon] = relationship(back_populates="surgeries")
+    treatment_episode: Mapped["TreatmentEpisode | None"] = relationship(
+        back_populates="surgery",
+        uselist=False,
+    )

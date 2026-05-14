@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.auth import get_current_user
 from app.database import get_db
-from app.models import Patient, User
-from app.schemas import LOCATION_OPTIONS, STATUS_OPTIONS, PatientCreate, PatientUpdate, validation_messages
+from app.models import Patient, Surgery, TreatmentEpisode, User
+from app.schemas import PatientCreate, PatientUpdate, validation_messages
 
 router = APIRouter(prefix="/patients", tags=["patients"])
 templates = Jinja2Templates(directory="templates")
@@ -18,21 +18,29 @@ PATIENT_FIELD_LABELS = {
     "name": "Nome",
     "birth_date": "Data de nascimento",
     "phone": "Telefone",
-    "health_info": "Informações de saúde",
-    "status": "Status",
-    "location": "Local de atendimento",
+    "health_info": "Informacoes de saude",
 }
 
 
 def get_patient_or_404(db: Session, patient_id: int) -> Patient:
     patient = (
         db.query(Patient)
-        .options(selectinload(Patient.attendances), selectinload(Patient.surgeries))
+        .options(
+            selectinload(Patient.attendances),
+            selectinload(Patient.surgeries),
+            selectinload(Patient.treatment_episodes)
+            .selectinload(TreatmentEpisode.surgery)
+            .selectinload(Surgery.surgery_type),
+            selectinload(Patient.treatment_episodes)
+            .selectinload(TreatmentEpisode.surgery)
+            .selectinload(Surgery.surgeon),
+            selectinload(Patient.treatment_episodes).selectinload(TreatmentEpisode.attendances),
+        )
         .filter(Patient.id == patient_id)
         .first()
     )
     if not patient:
-        raise HTTPException(status_code=404, detail="Paciente não encontrado.")
+        raise HTTPException(status_code=404, detail="Paciente nao encontrado.")
     return patient
 
 
@@ -49,8 +57,6 @@ def patient_context(
         "patient": patient,
         "form_data": form_data or {},
         "errors": errors or [],
-        "status_options": STATUS_OPTIONS,
-        "location_options": LOCATION_OPTIONS,
     }
 
 
@@ -75,16 +81,12 @@ def create_patient(
     birth_date: Annotated[str, Form()] = "",
     phone: Annotated[str, Form()] = "",
     health_info: Annotated[str, Form()] = "",
-    status_value: Annotated[str, Form(alias="status")] = "Em tratamento",
-    location: Annotated[str, Form()] = "Consultório",
 ):
     form_data = {
         "name": name,
         "birth_date": birth_date,
         "phone": phone,
         "health_info": health_info,
-        "status": status_value,
-        "location": location,
     }
     try:
         data = PatientCreate(
@@ -92,8 +94,6 @@ def create_patient(
             birth_date=birth_date,
             phone=phone,
             health_info=health_info,
-            status=status_value,
-            location=location,
         )
     except ValidationError as exc:
         return templates.TemplateResponse(
@@ -116,8 +116,12 @@ def patient_detail(
     patient_id: int,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
+    error: str = "",
 ):
     patient = get_patient_or_404(db, patient_id)
+    unlinked_attendances = [
+        attendance for attendance in patient.attendances if attendance.treatment_episode_id is None
+    ]
     return templates.TemplateResponse(
         request,
         "patients/detail.html",
@@ -126,6 +130,9 @@ def patient_detail(
             "patient": patient,
             "total_attendances": len(patient.attendances),
             "total_surgeries": len(patient.surgeries),
+            "total_episodes": len(patient.treatment_episodes),
+            "unlinked_attendances": unlinked_attendances,
+            "error": error,
         },
     )
 
@@ -155,8 +162,6 @@ def update_patient(
     birth_date: Annotated[str, Form()] = "",
     phone: Annotated[str, Form()] = "",
     health_info: Annotated[str, Form()] = "",
-    status_value: Annotated[str, Form(alias="status")] = "Em tratamento",
-    location: Annotated[str, Form()] = "Consultório",
 ):
     patient = get_patient_or_404(db, patient_id)
     form_data = {
@@ -164,8 +169,6 @@ def update_patient(
         "birth_date": birth_date,
         "phone": phone,
         "health_info": health_info,
-        "status": status_value,
-        "location": location,
     }
     try:
         data = PatientUpdate(
@@ -173,8 +176,6 @@ def update_patient(
             birth_date=birth_date,
             phone=phone,
             health_info=health_info,
-            status=status_value,
-            location=location,
         )
     except ValidationError as exc:
         return templates.TemplateResponse(

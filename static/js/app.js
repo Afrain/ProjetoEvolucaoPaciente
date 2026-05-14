@@ -96,4 +96,16 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   });
+
+  document.querySelectorAll("[data-episode-details]").forEach((details) => {
+    const label = details.querySelector("[data-episode-toggle-label]");
+    if (!label) {
+      return;
+    }
+    const syncLabel = () => {
+      label.textContent = details.open ? "Diminuir detalhes" : "Visualizar detalhes";
+    };
+    syncLabel();
+    details.addEventListener("toggle", syncLabel);
+  });
 });
