@@ -30,17 +30,29 @@
     <label class="span-full">
       Ciclo de tratamento
       {% set selected_episode = form_data.treatment_episode_id if form_data else attendance.treatment_episode_id if is_edit else '' %}
-      <select name="treatment_episode_id" required>
-        <option value="">Selecione</option>
-        {% for episode in treatment_episodes %}
-          {% if episode.surgery %}
-            {% set episode_label = episode.surgery.surgery_date.strftime("%d/%m/%Y") ~ " - " ~ episode.surgery.surgery_type.name ~ " (" ~ episode.surgery.status ~ ")" %}
-          {% else %}
-            {% set episode_label = episode.started_on.strftime("%d/%m/%Y") ~ " - ciclo sem cirurgia vinculada" %}
-          {% endif %}
-          <option value="{{ episode.id }}" {% if episode.id|string == selected_episode|string %}selected{% endif %}>{{ episode_label }}</option>
-        {% endfor %}
-      </select>
+      {% if lock_episode %}
+        {% set selected_episode_obj = treatment_episodes | selectattr("id", "equalto", selected_episode|int) | list | first %}
+        {% if selected_episode_obj and selected_episode_obj.surgery %}
+          <input type="text" value="{{ selected_episode_obj.surgery.surgery_date.strftime('%d/%m/%Y') }} - {{ selected_episode_obj.surgery.surgery_type.name }}" readonly>
+        {% elif selected_episode_obj %}
+          <input type="text" value="{{ selected_episode_obj.started_on.strftime('%d/%m/%Y') }} - ciclo sem cirurgia vinculada" readonly>
+        {% else %}
+          <input type="text" value="Ciclo selecionado" readonly>
+        {% endif %}
+        <input type="hidden" name="treatment_episode_id" value="{{ selected_episode }}">
+      {% else %}
+        <select name="treatment_episode_id" required>
+          <option value="">Selecione</option>
+          {% for episode in treatment_episodes %}
+            {% if episode.surgery %}
+              {% set episode_label = episode.surgery.surgery_date.strftime("%d/%m/%Y") ~ " - " ~ episode.surgery.surgery_type.name %}
+            {% else %}
+              {% set episode_label = episode.started_on.strftime("%d/%m/%Y") ~ " - ciclo sem cirurgia vinculada" %}
+            {% endif %}
+            <option value="{{ episode.id }}" {% if episode.id|string == selected_episode|string %}selected{% endif %}>{{ episode_label }}</option>
+          {% endfor %}
+        </select>
+      {% endif %}
     </label>
 
     <label>
@@ -56,17 +68,6 @@
         {% endfor %}
       </select>
     </label>
-    {% if is_edit %}
-      <label>
-        Status do atendimento
-        {% set selected_status = form_data.status if form_data else attendance.status if is_edit else "Em andamento" %}
-        <select name="status" required>
-          {% for option in attendance_status_options %}
-            <option value="{{ option }}" {% if option == selected_status %}selected{% endif %}>{{ option }}</option>
-          {% endfor %}
-        </select>
-      </label>
-    {% endif %}
     <label class="span-full">
       Tipo de tratamento
       <input name="treatment_type" type="text" value="{{ form_data.treatment_type if form_data else attendance.treatment_type if is_edit else '' }}" required>

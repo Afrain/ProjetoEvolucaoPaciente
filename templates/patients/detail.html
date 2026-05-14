@@ -78,6 +78,7 @@
               </summary>
               <div class="episode-content">
                 <div class="form-actions">
+                  <a class="button button-secondary" href="/patients/{{ patient.id }}/treatment-episodes/{{ episode.id }}/evolution-report.pdf">Baixar evolucao</a>
                   {% set reached_limit = episode.surgery and (episode.attendances|length >= episode.surgery.planned_attendances) %}
                   {% set is_closed = episode.surgery and episode.surgery.status == "Alta" %}
                   {% if episode.surgery and episode.surgery.status != "Alta" %}
@@ -97,7 +98,7 @@
                         <div class="timeline-content">
                           <div class="timeline-title">
                             <h3>{{ attendance.treatment_type }}</h3>
-                            <span>{{ attendance.location }} | {{ attendance.status }}</span>
+                            <span>{{ attendance.location }}</span>
                           </div>
                           <p>{{ attendance.evolution_notes }}</p>
                           {% if attendance.surgeon %}
@@ -139,7 +140,7 @@
               <div class="timeline-content">
                 <div class="timeline-title">
                   <h3>{{ attendance.treatment_type }}</h3>
-                  <span>{{ attendance.location }} | {{ attendance.status }}</span>
+                  <span>{{ attendance.location }}</span>
                 </div>
                 <p>{{ attendance.evolution_notes }}</p>
                 <div class="inline-actions">

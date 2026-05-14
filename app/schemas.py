@@ -3,7 +3,6 @@ from datetime import date
 from pydantic import BaseModel, Field, ValidationError, ValidationInfo, field_validator
 
 ATTENDANCE_LOCATION_OPTIONS = ["Consultorio", "Domiciliar"]
-ATTENDANCE_STATUS_OPTIONS = ["Em andamento", "Alta", "Pausado"]
 SURGERY_STATUS_OPTIONS = ["Em progresso", "Alta"]
 
 
@@ -111,21 +110,7 @@ class AttendanceCreate(AttendanceBase):
 
 
 class AttendanceUpdate(AttendanceBase):
-    status: str = Field(default="Em andamento", max_length=20)
-
-    @field_validator("status", mode="before")
-    @classmethod
-    def strip_status(cls, value: str | None) -> str:
-        if not isinstance(value, str):
-            return "Em andamento"
-        return value.strip() or "Em andamento"
-
-    @field_validator("status")
-    @classmethod
-    def status_must_be_valid(cls, value: str) -> str:
-        if value not in ATTENDANCE_STATUS_OPTIONS:
-            raise ValueError("Selecione um status de atendimento valido.")
-        return value
+    pass
 
 
 class SurgeryBase(BaseModel):

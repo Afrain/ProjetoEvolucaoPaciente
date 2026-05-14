@@ -406,7 +406,7 @@ def create_surgeon(
             return redirect_to_options(error=str(exc))
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
     if not wants_json(request):
-        return redirect_to_options(notice="Cirurgiao cadastrado com sucesso.")
+        return redirect_to_options(notice="Cirurgião cadastrado com sucesso.")
     return {"id": surgeon.id, "name": surgeon.name}
 
 
@@ -421,7 +421,7 @@ def update_surgeon(
         update_named_option(db, Surgeon, surgeon_id, name)
     except ValueError as exc:
         return redirect_to_options(error=str(exc))
-    return redirect_to_options(notice="Cirurgiao atualizado com sucesso.")
+    return redirect_to_options(notice="Cirurgião atualizado com sucesso.")
 
 
 @router.post("/surgeons/{surgeon_id}/delete")
@@ -432,15 +432,15 @@ def delete_surgeon(
 ):
     surgeon = db.get(Surgeon, surgeon_id)
     if not surgeon:
-        raise HTTPException(status_code=404, detail="Cirurgiao nao encontrado.")
+        raise HTTPException(status_code=404, detail="Cirurgião não encontrado.")
 
     linked_surgeries = db.query(Surgery).filter(Surgery.surgeon_id == surgeon.id).count()
     linked_attendances = db.query(Attendance).filter(Attendance.surgeon_id == surgeon.id).count()
     if linked_surgeries or linked_attendances:
         return redirect_to_options(
-            error="Nao e possivel excluir este cirurgiao porque ha cirurgias ou atendimentos vinculados a ele."
+            error="Não é possível excluir este cirurgião porque há cirurgias ou atendimentos vinculados a ele."
         )
 
     db.delete(surgeon)
     db.commit()
-    return redirect_to_options(notice="Cirurgiao excluido com sucesso.")
+    return redirect_to_options(notice="Cirurgião excluído com sucesso.")

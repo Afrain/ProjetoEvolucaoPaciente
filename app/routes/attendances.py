@@ -13,7 +13,6 @@ from app.database import get_db
 from app.models import Attendance, Patient, TreatmentEpisode, User
 from app.schemas import (
     ATTENDANCE_LOCATION_OPTIONS,
-    ATTENDANCE_STATUS_OPTIONS,
     AttendanceCreate,
     EpisodeStatusUpdate,
     AttendanceUpdate,
@@ -53,7 +52,12 @@ def attendance_context(
     attendance: Attendance | None = None,
     form_data: dict | None = None,
     errors: list[str] | None = None,
+    lock_episode: bool = False,
 ):
+    treatment_episodes = db_treatment_episodes_for_context(patient)
+    if attendance is None:
+        treatment_episodes = [item for item in treatment_episodes if not item.surgery or item.surgery.status != "Alta"]
+
     return {
         "request": request,
         "current_user": current_user,
@@ -61,9 +65,9 @@ def attendance_context(
         "attendance": attendance,
         "form_data": form_data or {},
         "errors": errors or [],
-        "treatment_episodes": db_treatment_episodes_for_context(patient),
+        "treatment_episodes": treatment_episodes,
+        "lock_episode": lock_episode,
         "attendance_location_options": ATTENDANCE_LOCATION_OPTIONS,
-        "attendance_status_options": ATTENDANCE_STATUS_OPTIONS,
     }
 
 
@@ -111,6 +115,8 @@ def check_episode_accepts_attendance(
     completed = count_episode_attendances(db, episode, ignore_attendance_id=ignore_attendance_id)
     if completed >= surgery.planned_attendances:
         surgery.status = "Alta"
+        if episode.closed_on is None:
+            episode.closed_on = date.today()
         return "Limite de atendimentos atingido para esta cirurgia."
     return None
 
@@ -122,8 +128,11 @@ def sync_surgery_status_from_episode(db: Session, episode: TreatmentEpisode) -> 
     completed = count_episode_attendances(db, episode)
     if completed >= surgery.planned_attendances:
         surgery.status = "Alta"
+        if episode.closed_on is None:
+            episode.closed_on = date.today()
     elif surgery.status == "Alta":
         surgery.status = "Em progresso"
+        episode.closed_on = None
 
 
 @router.get("/patients/{patient_id}/attendances/new")
@@ -135,6 +144,7 @@ def new_attendance(
     treatment_episode_id: str = "",
 ):
     patient = get_patient_or_404(db, patient_id)
+    lock_episode = False
     if treatment_episode_id:
         try:
             episode_id_value = int(treatment_episode_id)
@@ -143,10 +153,13 @@ def new_attendance(
         episode = get_episode_for_patient(db, patient, episode_id_value) if episode_id_value else None
         if episode is None:
             raise HTTPException(status_code=404, detail="Ciclo de tratamento nao encontrado para o paciente.")
+        if episode.surgery and episode.surgery.status == "Alta":
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Este ciclo ja recebeu alta.")
         block_error = check_episode_accepts_attendance(db, episode)
         if block_error:
             db.commit()
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=block_error)
+        lock_episode = True
     return templates.TemplateResponse(
         request,
         "attendances/form.html",
@@ -162,6 +175,7 @@ def new_attendance(
                 if treatment_episode_id
                 else {"attendance_date": date.today().isoformat()}
             ),
+            lock_episode=lock_episode,
         ),
     )
 
@@ -241,7 +255,6 @@ def create_attendance(
         surgeon_id=surgery.surgeon_id if surgery else None,
         attendance_date=data.attendance_date,
         location=data.location,
-        status="Em andamento",
         treatment_type=data.treatment_type,
         evolution_notes=data.evolution_notes,
     )
@@ -275,7 +288,6 @@ def update_attendance(
     current_user: Annotated[User, Depends(get_current_user)],
     attendance_date: Annotated[date, Form()],
     location: Annotated[str, Form()],
-    status_value: Annotated[str, Form(alias="status")],
     treatment_type: Annotated[str, Form()],
     evolution_notes: Annotated[str, Form()],
     treatment_episode_id: Annotated[str, Form()],
@@ -284,7 +296,6 @@ def update_attendance(
     form_data = {
         "attendance_date": attendance_date,
         "location": location,
-        "status": status_value,
         "treatment_type": treatment_type,
         "evolution_notes": evolution_notes,
         "treatment_episode_id": treatment_episode_id,
@@ -346,7 +357,6 @@ def update_attendance(
     attendance.surgeon_id = surgery.surgeon_id if surgery else None
     attendance.attendance_date = data.attendance_date
     attendance.location = data.location
-    attendance.status = data.status
     attendance.treatment_type = data.treatment_type
     attendance.evolution_notes = data.evolution_notes
 
