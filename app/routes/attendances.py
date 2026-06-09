@@ -28,21 +28,21 @@ ATTENDANCE_FIELD_LABELS = {
     "attendance_date": "Data do atendimento",
     "location": "Local de atendimento",
     "treatment_type": "Tipo de tratamento",
-    "evolution_notes": "Observacoes de evolucao",
+    "evolution_notes": "Observacões de evolucão",
 }
 
 
 def get_patient_or_404(db: Session, patient_id: int) -> Patient:
     patient = db.get(Patient, patient_id)
     if not patient:
-        raise HTTPException(status_code=404, detail="Paciente nao encontrado.")
+        raise HTTPException(status_code=404, detail="Paciente não encontrado.")
     return patient
 
 
 def get_attendance_or_404(db: Session, attendance_id: int) -> Attendance:
     attendance = db.get(Attendance, attendance_id)
     if not attendance:
-        raise HTTPException(status_code=404, detail="Atendimento nao encontrado.")
+        raise HTTPException(status_code=404, detail="Atendimento não encontrado.")
     return attendance
 
 
@@ -106,12 +106,12 @@ def check_episode_accepts_attendance(
 ) -> str | None:
     surgery = episode.surgery
     if not surgery:
-        return "O ciclo selecionado nao possui cirurgia vinculada."
+        return "O ciclo selecionado não possui cirurgia vinculada."
     is_editing_existing = False
     if ignore_attendance_id is not None:
         is_editing_existing = any(item.id == ignore_attendance_id for item in episode.attendances)
     if surgery.status == "Alta" and not is_editing_existing:
-        return "Esta cirurgia ja recebeu alta e nao aceita novos atendimentos."
+        return "Esta cirurgia já recebeu alta e não aceita novos atendimentos."
 
     completed = count_episode_attendances(db, episode, ignore_attendance_id=ignore_attendance_id)
     if completed >= surgery.planned_attendances:
@@ -153,9 +153,9 @@ def new_attendance(
             episode_id_value = 0
         episode = get_episode_for_patient(db, patient, episode_id_value) if episode_id_value else None
         if episode is None:
-            raise HTTPException(status_code=404, detail="Ciclo de tratamento nao encontrado para o paciente.")
+            raise HTTPException(status_code=404, detail="Ciclo de tratamento não encontrado para o paciente.")
         if episode.surgery and episode.surgery.status == "Alta":
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Este ciclo ja recebeu alta.")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Este ciclo já recebeu alta.")
         block_error = check_episode_accepts_attendance(db, episode)
         if block_error:
             db.commit()
@@ -227,7 +227,7 @@ def create_attendance(
                 current_user,
                 patient,
                 form_data=form_data,
-                errors=["Selecione um ciclo de tratamento valido."],
+                errors=["Selecione um ciclo de tratamento válido."],
             ),
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         )
@@ -329,7 +329,7 @@ def update_attendance(
                 attendance.patient,
                 attendance=attendance,
                 form_data=form_data,
-                errors=["Selecione um ciclo de tratamento valido."],
+                errors=["Selecione um ciclo de tratamento válido."],
             ),
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         )
@@ -395,9 +395,9 @@ def patch_treatment_episode_status(
 ):
     episode = db.get(TreatmentEpisode, episode_id)
     if not episode:
-        raise HTTPException(status_code=404, detail="Ciclo de tratamento nao encontrado.")
+        raise HTTPException(status_code=404, detail="Ciclo de tratamento não encontrado.")
     if not episode.surgery:
-        raise HTTPException(status_code=400, detail="Ciclo sem cirurgia vinculada nao possui status clinico.")
+        raise HTTPException(status_code=400, detail="Ciclo sem cirurgia vinculada não possui status clínico.")
 
     episode.surgery.status = payload.status
     episode.closed_on = date.today()
@@ -419,9 +419,9 @@ def mark_treatment_episode_high(
 ):
     episode = db.get(TreatmentEpisode, episode_id)
     if not episode:
-        raise HTTPException(status_code=404, detail="Ciclo de tratamento nao encontrado.")
+        raise HTTPException(status_code=404, detail="Ciclo de tratamento não encontrado.")
     if not episode.surgery:
-        raise HTTPException(status_code=400, detail="Ciclo sem cirurgia vinculada nao possui status clinico.")
+        raise HTTPException(status_code=400, detail="Ciclo sem cirurgia vinculada não possui status clínico.")
 
     episode.surgery.status = "Alta"
     episode.closed_on = date.today()
