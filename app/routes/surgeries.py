@@ -27,7 +27,7 @@ templates = Jinja2Templates(directory="templates")
 SURGERY_FIELD_LABELS = {
     "surgery_date": "Data da cirurgia",
     "surgery_type_id": "Tipo de cirurgia",
-    "surgeon_id": "Cirurgiao",
+    "surgeon_id": "Cirurgião",
     "planned_attendances": "Total previsto de atendimentos",
     "status": "Status da cirurgia",
 }
@@ -36,14 +36,14 @@ SURGERY_FIELD_LABELS = {
 def get_patient_or_404(db: Session, patient_id: int) -> Patient:
     patient = db.get(Patient, patient_id)
     if not patient:
-        raise HTTPException(status_code=404, detail="Paciente nao encontrado.")
+        raise HTTPException(status_code=404, detail="Paciente não encontrado.")
     return patient
 
 
 def get_surgery_or_404(db: Session, surgery_id: int) -> Surgery:
     surgery = db.get(Surgery, surgery_id)
     if not surgery:
-        raise HTTPException(status_code=404, detail="Cirurgia nao encontrada.")
+        raise HTTPException(status_code=404, detail="Cirurgia não encontrada.")
     return surgery
 
 
@@ -98,7 +98,7 @@ def get_or_create_named_option(db: Session, model: type[SurgeryType] | type[Surg
 def update_named_option(db: Session, model: type[SurgeryType] | type[Surgeon], option_id: int, name: str):
     option = db.get(model, option_id)
     if not option:
-        raise HTTPException(status_code=404, detail="Cadastro nao encontrado.")
+        raise HTTPException(status_code=404, detail="Cadastro não encontrado.")
 
     clean_name = normalize_name(name)
     if len(clean_name) < 2:
@@ -110,7 +110,7 @@ def update_named_option(db: Session, model: type[SurgeryType] | type[Surgeon], o
         .first()
     )
     if existing:
-        raise ValueError("Ja existe um cadastro com esse nome.")
+        raise ValueError("Já existe um cadastro com esse nome.")
 
     option.name = clean_name
     db.commit()
@@ -129,9 +129,9 @@ def wants_json(request: Request) -> bool:
 def ensure_surgery_options(db: Session, data: SurgeryCreate | SurgeryUpdate) -> list[str]:
     errors = []
     if not db.get(SurgeryType, data.surgery_type_id):
-        errors.append("Selecione um tipo de cirurgia valido.")
+        errors.append("Selecione um tipo de cirurgia válido.")
     if not db.get(Surgeon, data.surgeon_id):
-        errors.append("Selecione um cirurgiao valido.")
+        errors.append("Selecione um cirurgião válido.")
     return errors
 
 

@@ -20,7 +20,7 @@ PATIENT_FIELD_LABELS = {
     "name": "Nome",
     "birth_date": "Data de nascimento",
     "phone": "Telefone",
-    "health_info": "Informacoes de saude",
+    "health_info": "Informações de saúde",
 }
 
 
@@ -42,14 +42,14 @@ def get_patient_or_404(db: Session, patient_id: int) -> Patient:
         .first()
     )
     if not patient:
-        raise HTTPException(status_code=404, detail="Paciente nao encontrado.")
+        raise HTTPException(status_code=404, detail="Paciente não encontrado.")
     return patient
 
 
 def get_episode_for_patient_or_404(patient: Patient, episode_id: int) -> TreatmentEpisode:
     episode = next((item for item in patient.treatment_episodes if item.id == episode_id), None)
     if not episode:
-        raise HTTPException(status_code=404, detail="Ciclo de tratamento nao encontrado para o paciente.")
+        raise HTTPException(status_code=404, detail="Ciclo de tratamento não encontrado para o paciente.")
     return episode
 
 
@@ -71,17 +71,17 @@ def build_evolution_report_sections(patient: Patient, episode: TreatmentEpisode)
 
     surgery_number = surgery.id if surgery else "-"
     cycle_lines = [
-        f"Numero cirurgia: {surgery_number}",
-        f"Inicio: {format_date(episode.started_on)}",
+        f"Número cirurgia: {surgery_number}",
+        f"Início: {format_date(episode.started_on)}",
         f"Encerramento: {format_date(episode.closed_on)}",
     ]
 
     surgery_lines = [
-        f"Cirurgia: {surgery.surgery_type.name}" if surgery else "Cirurgia: nao vinculada",
+        f"Cirurgia: {surgery.surgery_type.name}" if surgery else "Cirurgia: não vinculada",
         f"Data da cirurgia: {format_date(surgery.surgery_date)}" if surgery else "Data da cirurgia: -",
-        f"Cirurgiao: {surgery.surgeon.name}" if surgery else "Cirurgiao: -",
+        f"Cirurgião: {surgery.surgeon.name}" if surgery else "Cirurgião: -",
         f"Status: {normalize_surgery_status(surgery.status)}" if surgery else "Status: -",
-        f"Sessoes: {total_done}/{total_planned}",
+        f"Sessões: {total_done}/{total_planned}",
     ]
 
     attendance_blocks = []
@@ -97,7 +97,7 @@ def build_evolution_report_sections(patient: Patient, episode: TreatmentEpisode)
         )
 
     return {
-        "title": "RESUMO DE EVOLUCAO CLINICA",
+        "title": "RESUMO DE EVOLUÇÃO CLÍNICA",
         "header_lines": header_lines,
         "cycle_lines": cycle_lines,
         "surgery_lines": surgery_lines,
