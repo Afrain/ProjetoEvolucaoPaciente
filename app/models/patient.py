@@ -14,6 +14,13 @@ class Patient(Base):
     birth_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
     health_info: Mapped[str | None] = mapped_column(Text, nullable=True)
+    cpf: Mapped[str | None] = mapped_column(String(14), nullable=True, unique=True)
+    rg: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    address: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    legal_guardian_name: Mapped[str | None] = mapped_column(String(140), nullable=True)
+    legal_guardian_cpf: Mapped[str | None] = mapped_column(String(14), nullable=True)
+    legal_guardian_relationship: Mapped[str | None] = mapped_column(String(60), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,

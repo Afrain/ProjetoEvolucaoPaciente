@@ -1,5 +1,6 @@
 from io import BytesIO
 from datetime import date
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
@@ -9,19 +10,38 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session, selectinload
 
 from app.auth import get_current_user
+from app.contract_pdf import _slug, generate_contract_pdf
+from app.contract_validation import get_missing_contract_fields
 from app.database import get_db
-from app.models import Patient, Surgery, TreatmentEpisode, User
+from app.models import Patient, ProfessionalProfile, Surgery, TreatmentEpisode, User
 from app.schemas import PatientCreate, PatientUpdate, normalize_surgery_status, validation_messages
 
 router = APIRouter(prefix="/patients", tags=["patients"])
 templates = Jinja2Templates(directory="templates")
+logger = logging.getLogger(__name__)
 
 PATIENT_FIELD_LABELS = {
     "name": "Nome",
     "birth_date": "Data de nascimento",
     "phone": "Telefone",
     "health_info": "Informações de saúde",
+    "cpf": "CPF",
+    "rg": "RG",
+    "address": "Endereço",
+    "email": "E-mail",
+    "legal_guardian_name": "Nome do responsável legal",
+    "legal_guardian_cpf": "CPF do responsável legal",
+    "legal_guardian_relationship": "Vínculo do responsável legal",
 }
+
+
+def patient_cpf_exists(db: Session, cpf: str | None, *, exclude_patient_id: int | None = None) -> bool:
+    if not cpf:
+        return False
+    query = db.query(Patient).filter(Patient.cpf == cpf)
+    if exclude_patient_id is not None:
+        query = query.filter(Patient.id != exclude_patient_id)
+    return query.first() is not None
 
 
 def get_patient_or_404(db: Session, patient_id: int) -> Patient:
@@ -121,6 +141,32 @@ def patient_context(
     }
 
 
+def patient_detail_context(
+    current_user: User,
+    patient: Patient,
+    *,
+    error: str = "",
+    contract_error: str = "",
+    contract_missing_fields: dict[str, list[str]] | None = None,
+    contract_episode_id: int | None = None,
+) -> dict:
+    unlinked_attendances = [
+        attendance for attendance in patient.attendances if attendance.treatment_episode_id is None
+    ]
+    return {
+        "current_user": current_user,
+        "patient": patient,
+        "total_attendances": len(patient.attendances),
+        "total_surgeries": len(patient.surgeries),
+        "total_episodes": len(patient.treatment_episodes),
+        "unlinked_attendances": unlinked_attendances,
+        "error": error,
+        "contract_error": contract_error,
+        "contract_missing_fields": contract_missing_fields or {},
+        "contract_episode_id": contract_episode_id,
+    }
+
+
 @router.get("/new")
 def new_patient(
     request: Request,
@@ -142,25 +188,42 @@ def create_patient(
     birth_date: Annotated[str, Form()] = "",
     phone: Annotated[str, Form()] = "",
     health_info: Annotated[str, Form()] = "",
+    cpf: Annotated[str, Form()] = "",
+    rg: Annotated[str, Form()] = "",
+    address: Annotated[str, Form()] = "",
+    email: Annotated[str, Form()] = "",
+    legal_guardian_name: Annotated[str, Form()] = "",
+    legal_guardian_cpf: Annotated[str, Form()] = "",
+    legal_guardian_relationship: Annotated[str, Form()] = "",
 ):
     form_data = {
         "name": name,
         "birth_date": birth_date,
         "phone": phone,
         "health_info": health_info,
+        "cpf": cpf,
+        "rg": rg,
+        "address": address,
+        "email": email,
+        "legal_guardian_name": legal_guardian_name,
+        "legal_guardian_cpf": legal_guardian_cpf,
+        "legal_guardian_relationship": legal_guardian_relationship,
     }
     try:
-        data = PatientCreate(
-            name=name,
-            birth_date=birth_date,
-            phone=phone,
-            health_info=health_info,
-        )
+        data = PatientCreate(**form_data)
     except ValidationError as exc:
         return templates.TemplateResponse(
             request,
             "patients/form.html",
             patient_context(request, current_user, form_data, validation_messages(exc, PATIENT_FIELD_LABELS)),
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
+
+    if patient_cpf_exists(db, data.cpf):
+        return templates.TemplateResponse(
+            request,
+            "patients/form.html",
+            patient_context(request, current_user, form_data, ["CPF já cadastrado para outro paciente."]),
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         )
 
@@ -180,21 +243,58 @@ def patient_detail(
     error: str = "",
 ):
     patient = get_patient_or_404(db, patient_id)
-    unlinked_attendances = [
-        attendance for attendance in patient.attendances if attendance.treatment_episode_id is None
-    ]
     return templates.TemplateResponse(
         request,
         "patients/detail.html",
-        {
-            "current_user": current_user,
-            "patient": patient,
-            "total_attendances": len(patient.attendances),
-            "total_surgeries": len(patient.surgeries),
-            "total_episodes": len(patient.treatment_episodes),
-            "unlinked_attendances": unlinked_attendances,
-            "error": error,
-        },
+        patient_detail_context(current_user, patient, error=error),
+    )
+
+
+@router.get("/{patient_id}/treatment-episodes/{episode_id}/contract.pdf")
+def download_contract_pdf(
+    request: Request,
+    patient_id: int,
+    episode_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    patient = get_patient_or_404(db, patient_id)
+    episode = get_episode_for_patient_or_404(patient, episode_id)
+    profile = db.query(ProfessionalProfile).filter(ProfessionalProfile.user_id == current_user.id).first()
+    missing_fields = get_missing_contract_fields(patient, episode, profile)
+    if missing_fields:
+        return templates.TemplateResponse(
+            request,
+            "patients/detail.html",
+            patient_detail_context(
+                current_user,
+                patient,
+                contract_error=(
+                    "Não foi possível gerar o contrato. "
+                    "Preencha os campos obrigatórios para o contrato:"
+                ),
+                contract_missing_fields=missing_fields,
+                contract_episode_id=episode.id,
+            ),
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
+
+    try:
+        if profile is None:  # Garantido pela validação acima; mantém a tipagem explícita.
+            raise RuntimeError("Perfil profissional ausente após validação.")
+        buffer = generate_contract_pdf(patient, episode, profile, current_user)
+    except Exception as exc:
+        logger.exception("Falha ao gerar contrato para episode_id=%d", episode_id)
+        raise HTTPException(
+            status_code=500,
+            detail="Falha na geração do contrato. Tente novamente.",
+        ) from exc
+
+    filename = f"contrato_{_slug(patient.name)}_{episode.id}.pdf"
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
@@ -452,6 +552,13 @@ def update_patient(
     birth_date: Annotated[str, Form()] = "",
     phone: Annotated[str, Form()] = "",
     health_info: Annotated[str, Form()] = "",
+    cpf: Annotated[str, Form()] = "",
+    rg: Annotated[str, Form()] = "",
+    address: Annotated[str, Form()] = "",
+    email: Annotated[str, Form()] = "",
+    legal_guardian_name: Annotated[str, Form()] = "",
+    legal_guardian_cpf: Annotated[str, Form()] = "",
+    legal_guardian_relationship: Annotated[str, Form()] = "",
 ):
     patient = get_patient_or_404(db, patient_id)
     form_data = {
@@ -459,14 +566,16 @@ def update_patient(
         "birth_date": birth_date,
         "phone": phone,
         "health_info": health_info,
+        "cpf": cpf,
+        "rg": rg,
+        "address": address,
+        "email": email,
+        "legal_guardian_name": legal_guardian_name,
+        "legal_guardian_cpf": legal_guardian_cpf,
+        "legal_guardian_relationship": legal_guardian_relationship,
     }
     try:
-        data = PatientUpdate(
-            name=name,
-            birth_date=birth_date,
-            phone=phone,
-            health_info=health_info,
-        )
+        data = PatientUpdate(**form_data)
     except ValidationError as exc:
         return templates.TemplateResponse(
             request,
@@ -476,6 +585,20 @@ def update_patient(
                 current_user,
                 form_data,
                 validation_messages(exc, PATIENT_FIELD_LABELS),
+                patient,
+            ),
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
+
+    if patient_cpf_exists(db, data.cpf, exclude_patient_id=patient.id):
+        return templates.TemplateResponse(
+            request,
+            "patients/form.html",
+            patient_context(
+                request,
+                current_user,
+                form_data,
+                ["CPF já cadastrado para outro paciente."],
                 patient,
             ),
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

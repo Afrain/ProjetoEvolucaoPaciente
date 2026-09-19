@@ -1,4 +1,133 @@
 document.addEventListener("DOMContentLoaded", () => {
+  const formatCpfCnpj = (value) => {
+    const digits = value.replace(/\D/g, "").slice(0, 14);
+    if (digits.length <= 11) {
+      return digits
+        .replace(/^(\d{3})(\d)/, "$1.$2")
+        .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+        .replace(/\.(\d{3})(\d)/, ".$1-$2");
+    }
+    return digits
+      .replace(/^(\d{2})(\d)/, "$1.$2")
+      .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+      .replace(/\.(\d{3})(\d)/, ".$1/$2")
+      .replace(/(\/\d{4})(\d)/, "$1-$2");
+  };
+
+  document.querySelectorAll("[data-cpf-cnpj-mask]").forEach((input) => {
+    const applyMask = () => {
+      input.value = formatCpfCnpj(input.value);
+    };
+    applyMask();
+    input.addEventListener("input", applyMask);
+  });
+
+  document.querySelectorAll("[data-payment-form]").forEach((form) => {
+    const condition = form.querySelector("[data-payment-condition]");
+    const installmentFields = form.querySelectorAll("[data-installment-field]");
+    const countInput = form.querySelector("[data-installment-count]");
+    const schedule = form.querySelector("[data-installment-schedule]");
+    const dateList = form.querySelector("[data-installment-date-list]");
+    const datesJson = form.querySelector("[data-installment-dates-json]");
+    if (!condition || !installmentFields.length) {
+      return;
+    }
+
+    let installmentDates = [];
+    if (schedule) {
+      try {
+        installmentDates = JSON.parse(schedule.getAttribute("data-existing-due-dates") || "[]");
+      } catch (_) {
+        installmentDates = [];
+      }
+    }
+
+    const addMonthsKeepingDay = (isoDate, months) => {
+      const parts = isoDate.split("-").map(Number);
+      if (parts.length !== 3 || parts.some(Number.isNaN)) {
+        return "";
+      }
+      const absoluteMonth = parts[1] - 1 + months;
+      const year = parts[0] + Math.floor(absoluteMonth / 12);
+      const month = ((absoluteMonth % 12) + 12) % 12;
+      const lastDay = new Date(year, month + 1, 0).getDate();
+      const day = Math.min(parts[2], lastDay);
+      return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    };
+
+    const syncDatesJson = () => {
+      if (datesJson) {
+        datesJson.value = JSON.stringify(installmentDates);
+      }
+    };
+
+    const renderInstallmentDates = (regenerateFromFirst = false) => {
+      if (!countInput || !dateList) {
+        return;
+      }
+      const count = Number.parseInt(countInput.value, 10);
+      if (!Number.isInteger(count) || count < 2 || count > 60) {
+        installmentDates = [];
+        dateList.innerHTML = '<p class="muted">Informe a quantidade de parcelas para definir os vencimentos.</p>';
+        syncDatesJson();
+        return;
+      }
+
+      if (regenerateFromFirst && installmentDates[0]) {
+        installmentDates = Array.from({ length: count }, (_, index) => addMonthsKeepingDay(installmentDates[0], index));
+      } else {
+        installmentDates = installmentDates.slice(0, count);
+        while (installmentDates.length < count) {
+          const nextIndex = installmentDates.length;
+          installmentDates.push(installmentDates[0] ? addMonthsKeepingDay(installmentDates[0], nextIndex) : "");
+        }
+      }
+
+      dateList.innerHTML = "";
+      installmentDates.forEach((value, index) => {
+        const label = document.createElement("label");
+        label.textContent = `${index + 1}ª parcela`;
+        const input = document.createElement("input");
+        input.type = "date";
+        input.value = value || "";
+        input.disabled = condition.disabled;
+        input.addEventListener("change", () => {
+          installmentDates[index] = input.value;
+          if (index === 0 && input.value) {
+            renderInstallmentDates(true);
+          } else {
+            syncDatesJson();
+          }
+        });
+        label.appendChild(input);
+        dateList.appendChild(label);
+      });
+      syncDatesJson();
+    };
+
+    const syncInstallments = () => {
+      const isInstallment = condition.value === "Parcelado";
+      installmentFields.forEach((field) => {
+        field.hidden = !isInstallment;
+        const input = field.querySelector("input");
+        if (input) {
+          input.disabled = !isInstallment || condition.disabled;
+        }
+      });
+      if (datesJson) {
+        datesJson.disabled = !isInstallment || condition.disabled;
+      }
+      if (isInstallment) {
+        renderInstallmentDates(false);
+      }
+    };
+    syncInstallments();
+    condition.addEventListener("change", syncInstallments);
+    if (countInput) {
+      countInput.addEventListener("input", () => renderInstallmentDates(false));
+    }
+  });
+
   document.querySelectorAll("form[data-confirm]").forEach((form) => {
     form.addEventListener("submit", (event) => {
       const message = form.getAttribute("data-confirm") || "Confirmar esta ação?";

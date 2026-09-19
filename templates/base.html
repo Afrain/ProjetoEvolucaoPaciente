@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Gestão de Pacientes{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
-    <script src="{{ url_for('static', path='/js/app.js') }}" defer></script>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}?v=20260919-2">
+    <script src="{{ url_for('static', path='/js/app.js') }}?v=20260919-2" defer></script>
   </head>
   <body>
     <header class="topbar">
@@ -15,6 +15,7 @@
         <a href="/patients/new">Novo paciente</a>
         <a href="/surgical-options">Cadastros</a>
         {% if current_user %}
+          <a href="/profile">Meu perfil</a>
           <form action="/logout" method="post">
             <button class="button button-ghost" type="submit">Sair</button>
           </form>

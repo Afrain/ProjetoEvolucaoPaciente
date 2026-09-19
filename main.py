@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.database import Base, SessionLocal, engine
-from app.routes import attendances, auth, dashboard, patients, surgeries
+from app.routes import attendances, auth, dashboard, episodes, patients, profile, surgeries
 from app.schema_updates import ensure_runtime_schema
 from app.seed import create_initial_admin_from_env
 
@@ -58,6 +58,8 @@ def create_app() -> FastAPI:
     app.include_router(patients.router)
     app.include_router(attendances.router)
     app.include_router(surgeries.router)
+    app.include_router(profile.router)
+    app.include_router(episodes.router)
 
     @app.exception_handler(404)
     def not_found(_: Request, __: Exception):

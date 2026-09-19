@@ -9,12 +9,17 @@ def ensure_runtime_schema(engine: Engine) -> None:
 
     if "patients" in tables:
         _ensure_patient_schema(engine, dialect)
+        _ensure_patient_contract_fields(engine)
     if "surgeries" in tables:
         _ensure_surgery_schema(engine, dialect)
     if "attendances" in tables:
         _ensure_attendance_schema(engine, dialect)
     if "surgeries" in tables and "treatment_episodes" in tables:
         _ensure_treatment_episode_schema(engine, dialect)
+    if "treatment_episodes" in tables:
+        _ensure_episode_contract_fields(engine)
+    if "users" in tables:
+        _ensure_professional_profile_table(engine, dialect)
 
 
 def _ensure_patient_schema(engine: Engine, dialect: str) -> None:
@@ -23,15 +28,14 @@ def _ensure_patient_schema(engine: Engine, dialect: str) -> None:
 
     if dialect == "sqlite":
         needs_rebuild = (
-            "email" in columns
-            or "status" in columns
+            "status" in columns
             or "location" in columns
             or bool(columns.get("birth_date", {}).get("nullable") is False)
             or bool(columns.get("phone", {}).get("nullable") is False)
             or bool(columns.get("health_info", {}).get("nullable") is False)
         )
         if needs_rebuild:
-            _rebuild_sqlite_patients(engine)
+            _rebuild_sqlite_patients(engine, set(columns))
         return
 
     with engine.begin() as connection:
@@ -41,25 +45,44 @@ def _ensure_patient_schema(engine: Engine, dialect: str) -> None:
             connection.execute(text("ALTER TABLE patients ALTER COLUMN phone DROP NOT NULL"))
         if "health_info" in columns:
             connection.execute(text("ALTER TABLE patients ALTER COLUMN health_info DROP NOT NULL"))
-        if "email" in columns:
-            connection.execute(text("ALTER TABLE patients DROP COLUMN email"))
         if "status" in columns:
             connection.execute(text("ALTER TABLE patients DROP COLUMN status"))
         if "location" in columns:
             connection.execute(text("ALTER TABLE patients DROP COLUMN location"))
 
 
-def _rebuild_sqlite_patients(engine: Engine) -> None:
+def _rebuild_sqlite_patients(engine: Engine, existing_columns: set[str]) -> None:
+    optional_columns = [
+        ("birth_date", "DATE"),
+        ("phone", "VARCHAR(30)"),
+        ("health_info", "TEXT"),
+        ("cpf", "VARCHAR(14)"),
+        ("rg", "VARCHAR(20)"),
+        ("address", "VARCHAR(300)"),
+        ("email", "VARCHAR(120)"),
+        ("legal_guardian_name", "VARCHAR(140)"),
+        ("legal_guardian_cpf", "VARCHAR(14)"),
+        ("legal_guardian_relationship", "VARCHAR(60)"),
+    ]
+    column_definitions = ",\n                ".join(
+        f"{name} {sql_type}" for name, sql_type in optional_columns
+    )
+    insert_columns = ["id", "name", *[name for name, _ in optional_columns], "created_at", "updated_at"]
+    select_columns = [
+        "id",
+        "name",
+        *[name if name in existing_columns else f"NULL AS {name}" for name, _ in optional_columns],
+        "created_at",
+        "updated_at",
+    ]
     with engine.begin() as connection:
         connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
         connection.exec_driver_sql(
-            """
+            f"""
             CREATE TABLE patients_new (
                 id INTEGER NOT NULL,
                 name VARCHAR(140) NOT NULL,
-                birth_date DATE,
-                phone VARCHAR(30),
-                health_info TEXT,
+                {column_definitions},
                 created_at DATETIME NOT NULL,
                 updated_at DATETIME NOT NULL,
                 PRIMARY KEY (id)
@@ -67,32 +90,85 @@ def _rebuild_sqlite_patients(engine: Engine) -> None:
             """
         )
         connection.exec_driver_sql(
-            """
-            INSERT INTO patients_new (
-                id,
-                name,
-                birth_date,
-                phone,
-                health_info,
-                created_at,
-                updated_at
-            )
-            SELECT
-                id,
-                name,
-                birth_date,
-                phone,
-                health_info,
-                created_at,
-                updated_at
-            FROM patients
-            """
+            f"INSERT INTO patients_new ({', '.join(insert_columns)}) "
+            f"SELECT {', '.join(select_columns)} FROM patients"
         )
         connection.exec_driver_sql("DROP TABLE patients")
         connection.exec_driver_sql("ALTER TABLE patients_new RENAME TO patients")
         connection.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_patients_id ON patients (id)")
         connection.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_patients_name ON patients (name)")
+        connection.exec_driver_sql("CREATE UNIQUE INDEX IF NOT EXISTS ux_patients_cpf ON patients (cpf)")
         connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+
+
+def _ensure_patient_contract_fields(engine: Engine) -> None:
+    columns = {column["name"] for column in inspect(engine).get_columns("patients")}
+    contract_columns = [
+        ("cpf", "VARCHAR(14)"),
+        ("rg", "VARCHAR(20)"),
+        ("address", "VARCHAR(300)"),
+        ("email", "VARCHAR(120)"),
+        ("legal_guardian_name", "VARCHAR(140)"),
+        ("legal_guardian_cpf", "VARCHAR(14)"),
+        ("legal_guardian_relationship", "VARCHAR(60)"),
+    ]
+    with engine.begin() as connection:
+        for name, sql_type in contract_columns:
+            if name not in columns:
+                connection.execute(text(f"ALTER TABLE patients ADD COLUMN {name} {sql_type}"))
+        connection.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ux_patients_cpf ON patients (cpf)"))
+
+
+def _ensure_episode_contract_fields(engine: Engine) -> None:
+    columns = {column["name"] for column in inspect(engine).get_columns("treatment_episodes")}
+    contract_columns = [
+        ("service_type", "VARCHAR(30)"),
+        ("contracted_procedure", "TEXT"),
+        ("session_value", "NUMERIC(10,2)"),
+        ("package_value", "NUMERIC(10,2)"),
+        ("payment_method", "VARCHAR(40)"),
+        ("payment_condition", "VARCHAR(20)"),
+        ("installment_count", "INTEGER"),
+        ("installment_due_dates", "TEXT"),
+    ]
+    with engine.begin() as connection:
+        for name, sql_type in contract_columns:
+            if name not in columns:
+                connection.execute(text(f"ALTER TABLE treatment_episodes ADD COLUMN {name} {sql_type}"))
+
+
+def _ensure_professional_profile_table(engine: Engine, dialect: str) -> None:
+    id_definition = "INTEGER PRIMARY KEY AUTOINCREMENT" if dialect == "sqlite" else "SERIAL PRIMARY KEY"
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                f"""
+                CREATE TABLE IF NOT EXISTS professional_profiles (
+                    id {id_definition},
+                    user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+                    cpf_cnpj VARCHAR(14),
+                    crefito VARCHAR(30),
+                    professional_address VARCHAR(300),
+                    professional_email VARCHAR(120),
+                    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+        )
+        connection.execute(
+            text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ux_professional_profiles_user_id "
+                "ON professional_profiles (user_id)"
+            )
+        )
+        connection.execute(
+            text(
+                "UPDATE professional_profiles SET cpf_cnpj = "
+                "REPLACE(REPLACE(REPLACE(REPLACE(cpf_cnpj, '.', ''), '-', ''), '/', ''), ' ', '') "
+                "WHERE cpf_cnpj IS NOT NULL"
+            )
+        )
 
 
 def _ensure_surgery_schema(engine: Engine, dialect: str) -> None:

@@ -258,6 +258,16 @@ h3 {
   grid-column: 1 / -1;
 }
 
+.form-section-heading {
+  border-top: 1px solid #dfe5ec;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+}
+
+.form-section-heading h2 {
+  margin-bottom: 0.25rem;
+}
+
 label {
   display: grid;
   gap: 0.4rem;
@@ -286,6 +296,18 @@ select:focus,
 textarea:focus {
   outline: 3px solid rgba(32, 106, 143, 0.18);
   border-color: var(--primary);
+}
+
+.field-warning input,
+.field-warning select,
+.field-warning textarea {
+  border-color: #c2410c;
+  box-shadow: 0 0 0 2px rgba(194, 65, 12, 0.12);
+}
+
+.field-warning small {
+  color: #9a3412;
+  font-weight: 650;
 }
 
 .field-with-action {
@@ -475,6 +497,36 @@ details[open] .episode-toggle-label .when-open {
 .alert-success {
   background: #e8f4ef;
   color: #1f6f4a;
+}
+
+.contract-pendencies {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.pendency-group {
+  border-left: 3px solid currentColor;
+  padding-left: 0.8rem;
+}
+
+.pendency-group ul {
+  margin: 0.35rem 0 0.5rem 1.2rem;
+}
+
+.pendency-group a {
+  color: inherit;
+  font-weight: 800;
+}
+
+.installment-schedule {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.installment-date-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.8rem;
 }
 
 .management-grid {

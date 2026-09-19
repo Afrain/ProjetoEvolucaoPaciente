@@ -37,6 +37,47 @@
       Telefone
       <input name="phone" type="tel" value="{{ form_data.phone if form_data else patient.phone if is_edit and patient.phone else '' }}">
     </label>
+    <div class="span-full form-section-heading">
+      <h2>Documentos e contato</h2>
+      <p class="muted">Campos opcionais no cadastro, necessários para gerar o contrato.</p>
+    </div>
+    <label>
+      CPF
+      <input name="cpf" type="text" maxlength="14" placeholder="000.000.000-00" value="{{ form_data.cpf if form_data else patient.cpf if is_edit and patient.cpf else '' }}">
+    </label>
+    <label>
+      RG
+      <input name="rg" type="text" maxlength="20" value="{{ form_data.rg if form_data else patient.rg if is_edit and patient.rg else '' }}">
+    </label>
+    <label>
+      E-mail
+      <input name="email" type="email" maxlength="120" value="{{ form_data.email if form_data else patient.email if is_edit and patient.email else '' }}">
+    </label>
+    <label class="span-full">
+      Endereço completo
+      <input name="address" type="text" maxlength="300" value="{{ form_data.address if form_data else patient.address if is_edit and patient.address else '' }}">
+    </label>
+    <div class="span-full form-section-heading">
+      <h2>Responsável legal</h2>
+      <p class="muted">Preencha somente quando aplicável.</p>
+    </div>
+    <label>
+      Nome do responsável
+      <input name="legal_guardian_name" type="text" maxlength="140" value="{{ form_data.legal_guardian_name if form_data else patient.legal_guardian_name if is_edit and patient.legal_guardian_name else '' }}">
+    </label>
+    {% set guardian_name = form_data.legal_guardian_name if form_data else patient.legal_guardian_name if is_edit else '' %}
+    {% set guardian_cpf = form_data.legal_guardian_cpf if form_data else patient.legal_guardian_cpf if is_edit else '' %}
+    <label class="{{ 'field-warning' if guardian_name and not guardian_cpf else '' }}">
+      CPF do responsável
+      <input name="legal_guardian_cpf" type="text" maxlength="14" placeholder="000.000.000-00" value="{{ guardian_cpf or '' }}">
+      {% if guardian_name and not guardian_cpf %}
+        <small>CPF ausente. O cadastro pode ser salvo, mas o contrato não poderá ser gerado.</small>
+      {% endif %}
+    </label>
+    <label>
+      Grau de parentesco ou vínculo
+      <input name="legal_guardian_relationship" type="text" maxlength="60" placeholder="Ex.: mãe, pai, curador" value="{{ form_data.legal_guardian_relationship if form_data else patient.legal_guardian_relationship if is_edit and patient.legal_guardian_relationship else '' }}">
+    </label>
     <label class="span-full">
       Informacoes basicas de saude
       <textarea name="health_info" rows="7">{{ form_data.health_info if form_data else patient.health_info if is_edit and patient.health_info else '' }}</textarea>

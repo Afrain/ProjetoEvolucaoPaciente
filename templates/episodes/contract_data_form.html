@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Dados do contrato | FisioGestão{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Ciclo de tratamento</p>
+      <h1>Dados comerciais do contrato</h1>
+      <p class="muted">Paciente: {{ patient.name }}</p>
+    </div>
+    <a class="button button-secondary" href="/patients/{{ patient.id }}">Voltar ao histórico</a>
+  </section>
+
+  {% if is_locked %}
+    <div class="alert alert-error"><p>Este ciclo recebeu alta. Os dados comerciais estão disponíveis apenas para consulta.</p></div>
+  {% endif %}
+  {% if errors %}
+    <div class="alert alert-error">
+      {% for error in errors %}<p>{{ error }}</p>{% endfor %}
+    </div>
+  {% endif %}
+
+  {% set selected_service = form_data.service_type if form_data else episode.service_type or '' %}
+  {% set selected_payment = form_data.payment_method if form_data else episode.payment_method or '' %}
+  {% set selected_condition = form_data.payment_condition if form_data else episode.payment_condition or '' %}
+  {% set session_value = form_data.session_value if form_data else episode.session_value if episode.session_value is not none else '' %}
+  {% set package_value = form_data.package_value if form_data else episode.package_value if episode.package_value is not none else '' %}
+  <form class="form-grid" action="/treatment-episodes/{{ episode.id }}/contract-data" method="post" data-payment-form>
+    <label>
+      Tipo de serviço
+      <select name="service_type" {{ 'disabled' if is_locked else '' }}>
+        <option value="">Selecione</option>
+        {% for option in service_type_options %}
+          <option value="{{ option }}" {{ 'selected' if selected_service == option else '' }}>{{ option }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Forma de pagamento
+      <select name="payment_method" {{ 'disabled' if is_locked else '' }}>
+        <option value="">Selecione</option>
+        {% for option in payment_method_options %}
+          <option value="{{ option }}" {{ 'selected' if selected_payment == option else '' }}>{{ option }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Condição de pagamento
+      <select name="payment_condition" data-payment-condition {{ 'disabled' if is_locked else '' }}>
+        <option value="">Selecione</option>
+        {% for option in payment_condition_options %}
+          <option value="{{ option }}" {{ 'selected' if selected_condition == option else '' }}>{{ option }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="{{ 'field-warning' if selected_service == 'Avulso' and session_value == '' else '' }}">
+      Valor da sessão{{ ' *' if selected_service == 'Avulso' else '' }}
+      <input name="session_value" type="number" min="0.01" max="999999.99" step="0.01" value="{{ session_value }}" {{ 'disabled' if is_locked else '' }}>
+    </label>
+    <label class="{{ 'field-warning' if selected_service == 'Pacote' and package_value == '' else '' }}">
+      Valor do pacote{{ ' *' if selected_service == 'Pacote' else '' }}
+      <input name="package_value" type="number" min="0" max="999999.99" step="0.01" value="{{ package_value }}" {{ 'disabled' if is_locked else '' }}>
+    </label>
+    <label data-installment-field {{ 'hidden' if selected_condition != 'Parcelado' else '' }}>
+      Quantidade de parcelas *
+      <input name="installment_count" data-installment-count type="number" min="2" max="60" value="{{ form_data.installment_count if form_data else episode.installment_count if episode.installment_count is not none else '' }}" {{ 'disabled' if is_locked else '' }}>
+    </label>
+    {% set due_dates_value = form_data.installment_due_dates if form_data and form_data.installment_due_dates else installment_due_dates|tojson %}
+    <div class="span-full installment-schedule" data-installment-field data-installment-schedule data-existing-due-dates="{{ due_dates_value|forceescape }}" {{ 'hidden' if selected_condition != 'Parcelado' else '' }}>
+      <div class="form-section-heading">
+        <h2>Vencimentos das parcelas</h2>
+        <p class="muted">Informe a primeira data; as próximas serão calculadas mensalmente e poderão ser alteradas.</p>
+      </div>
+      <div class="installment-date-grid" data-installment-date-list></div>
+      <input name="installment_due_dates" type="hidden" data-installment-dates-json value="{{ due_dates_value|forceescape }}">
+    </div>
+    <label class="span-full">
+      Procedimento contratado e plano terapêutico inicial
+      <textarea name="contracted_procedure" rows="7" maxlength="1000" {{ 'disabled' if is_locked else '' }}>{{ form_data.contracted_procedure if form_data else episode.contracted_procedure or '' }}</textarea>
+    </label>
+    {% if not is_locked %}
+      <div class="form-actions span-full">
+        <button class="button button-primary" type="submit">Salvar dados comerciais</button>
+      </div>
+    {% endif %}
+  </form>
+{% endblock %}

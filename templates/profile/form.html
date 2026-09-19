@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Meu perfil profissional | FisioGestão{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Dados do contratado</p>
+      <h1>Meu perfil profissional</h1>
+      <p class="muted">Os campos são opcionais no cadastro, mas precisam estar completos para gerar contratos.</p>
+    </div>
+    <a class="button button-secondary" href="/dashboard">Voltar</a>
+  </section>
+
+  {% if notice %}
+    <div class="alert alert-success"><p>{{ notice }}</p></div>
+  {% endif %}
+  {% if errors %}
+    <div class="alert alert-error">
+      {% for error in errors %}<p>{{ error }}</p>{% endfor %}
+    </div>
+  {% endif %}
+
+  <form class="form-grid" action="/profile" method="post">
+    <label>
+      CPF ou CNPJ
+      <input name="cpf_cnpj" type="text" inputmode="numeric" maxlength="18" data-cpf-cnpj-mask placeholder="000.000.000-00 ou 00.000.000/0000-00" value="{{ form_data.cpf_cnpj if form_data else profile.cpf_cnpj if profile and profile.cpf_cnpj else '' }}">
+    </label>
+    <label>
+      CREFITO
+      <input name="crefito" type="text" maxlength="30" value="{{ form_data.crefito if form_data else profile.crefito if profile and profile.crefito else '' }}">
+    </label>
+    <label>
+      E-mail profissional
+      <input name="professional_email" type="email" maxlength="120" value="{{ form_data.professional_email if form_data else profile.professional_email if profile and profile.professional_email else '' }}">
+    </label>
+    <label class="span-full">
+      Endereço profissional
+      <input name="professional_address" type="text" maxlength="300" value="{{ form_data.professional_address if form_data else profile.professional_address if profile and profile.professional_address else '' }}">
+    </label>
+    <div class="form-actions span-full">
+      <button class="button button-primary" type="submit">Salvar perfil</button>
+    </div>
+  </form>
+{% endblock %}
