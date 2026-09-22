@@ -4,27 +4,72 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Gestão de Pacientes{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}?v=20260919-2">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}?v=20260919-4">
     <script src="{{ url_for('static', path='/js/app.js') }}?v=20260919-2" defer></script>
   </head>
-  <body>
-    <header class="topbar">
-      <a class="brand" href="/dashboard">FisioGestão</a>
-      <nav class="topnav" aria-label="Navegação principal">
-        <a href="/dashboard">Painel</a>
-        <a href="/patients/new">Novo paciente</a>
-        <a href="/surgical-options">Cadastros</a>
-        {% if current_user %}
-          <a href="/profile">Meu perfil</a>
-          <form action="/logout" method="post">
-            <button class="button button-ghost" type="submit">Sair</button>
-          </form>
-        {% endif %}
-      </nav>
-    </header>
+  <body class="app-body">
+    {% set current_path = request.url.path %}
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Menu principal">
+        <div class="sidebar-header">
+          <a class="brand" href="/dashboard" aria-label="FisioGestão — página inicial">
+            <span class="brand-mark" aria-hidden="true">F</span>
+            <span class="brand-copy">
+              <strong>FisioGestão</strong>
+              <small>Cuidado em movimento</small>
+            </span>
+          </a>
+        </div>
 
-    <main class="page">
-      {% block content %}{% endblock %}
-    </main>
+        {% if current_user %}
+          <div class="sidebar-user">
+            <span class="user-avatar" aria-hidden="true">{{ current_user.full_name[:1] | upper }}</span>
+            <span class="user-copy">
+              <strong>{{ current_user.full_name }}</strong>
+              <small>Área profissional</small>
+            </span>
+          </div>
+        {% endif %}
+
+        <nav class="sidebar-nav" aria-label="Navegação principal">
+          <span class="sidebar-section-label">Menu</span>
+          <a class="nav-link{% if current_path == '/dashboard' %} is-active{% endif %}" href="/dashboard"{% if current_path == '/dashboard' %} aria-current="page"{% endif %}>
+            <span class="nav-icon" aria-hidden="true">⌂</span>
+            <span>Painel</span>
+          </a>
+          <a class="nav-link{% if current_path == '/patients/new' %} is-active{% endif %}" href="/patients/new"{% if current_path == '/patients/new' %} aria-current="page"{% endif %}>
+            <span class="nav-icon" aria-hidden="true">＋</span>
+            <span>Novo paciente</span>
+          </a>
+          <a class="nav-link{% if current_path == '/surgical-options' %} is-active{% endif %}" href="/surgical-options"{% if current_path == '/surgical-options' %} aria-current="page"{% endif %}>
+            <span class="nav-icon" aria-hidden="true">◇</span>
+            <span>Cadastros</span>
+          </a>
+          {% if current_user %}
+            <a class="nav-link{% if current_path == '/profile' %} is-active{% endif %}" href="/profile"{% if current_path == '/profile' %} aria-current="page"{% endif %}>
+              <span class="nav-icon" aria-hidden="true">○</span>
+              <span>Meu perfil</span>
+            </a>
+          {% endif %}
+        </nav>
+
+        {% if current_user %}
+          <div class="sidebar-footer">
+            <form action="/logout" method="post">
+              <button class="sidebar-logout" type="submit">
+                <span aria-hidden="true">↪</span>
+                <span>Sair</span>
+              </button>
+            </form>
+          </div>
+        {% endif %}
+      </aside>
+
+      <div class="app-main">
+        <main class="page">
+          {% block content %}{% endblock %}
+        </main>
+      </div>
+    </div>
   </body>
 </html>
